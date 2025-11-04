@@ -1,0 +1,34 @@
+{
+  "users": {},
+  "orders": [],
+  "scans": [],
+  "partner_hotels": [
+    {
+      "id": "H001",
+      "name": "台北 W 飯店",
+      "address": "110台北市信義區忠孝東路五段10號",
+      "lat": 25.0406,
+      "lon": 121.5663,
+      "is_partner": true,
+      "offer": "行李運送 9 折"
+    },
+    {
+      "id": "H002",
+      "name": "君悅酒店",
+      "address": "110台北市信義區松壽路2號",
+      "lat": 25.0346,
+      "lon": 121.5641,
+      "is_partner": true,
+      "offer": "免費運送 1 件"
+    },
+    {
+      "id": "H003",
+      "name": "Demo 用的非特約民宿",
+      "address": "110台北市信義區某條路",
+      "lat": 25.0350,
+      "lon": 121.5650,
+      "is_partner": false,
+      "offer": ""
+    }
+  ]
+}

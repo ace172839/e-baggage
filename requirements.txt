@@ -1,0 +1,11 @@
+streamlit
+st_pages
+pandas
+googlemaps
+polyline
+google-generativeai
+pillow
+appdirs
+flet
+flet-map
+pyinstaller
