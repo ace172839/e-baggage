@@ -13,6 +13,7 @@ from views.login.role_select_view import build_role_select_view
 from views.login.login_view import build_login_view
 
 from views.user.user_home_page import build_user_app_view
+from views.user.user_home_page_content import build_dashboard_content
 from views.user.user_home_page_more_content import build_more_content
 from views.user.user_booking_instant import build_instant_booking_content
 from views.user.user_booking_previous import build_roundtrip_content
@@ -168,7 +169,7 @@ class App:
         ########## DEBUG MODE ##########
         ################################
 
-        user_email = self.login_username.current.value
+        user_email = self.login_username.current.value if self.login_username.current else "123"
         
         # Don't check account/password for demo purpose
         if not user_email:
@@ -203,26 +204,28 @@ class App:
         """
         處理「底部導航列」的點擊事件
         """
-        selected_index = e.control.selected_index
+        selected_index = int(e.data) 
         content = None
 
-        if selected_index == 0: # 更多
-            content = build_more_content(self)
-            logger.info("切換到「更多」列表")
+        if selected_index == 0: # 首頁 (新)
+            content = build_dashboard_content(self)
+            logger.info("切換到「首頁」儀表板")
         
         elif selected_index == 1: # 即時預約
             content = build_instant_booking_content(self)
             logger.info("切換到「即時預約」")
 
         elif selected_index == 2: # 來回預約 (事先預約)
-            # 呼叫我們的新 "啟程返程" 畫面
             content = build_roundtrip_content(self)
             logger.info("切換到「事先預約 - 啟程返程」")
 
         elif selected_index == 3: # 客服
-            # 呼叫我們的新 "客服" 佔位符
             content = build_support_content(self)
             logger.info("切換到「客服」")
+        
+        elif selected_index == 4: # 更多 (新)
+            content = build_more_content(self)
+            logger.info("切換到「更多」列表")
         
         # 替換主內容區域的 UI
         if self.main_content_ref.current:

@@ -1,18 +1,37 @@
 import flet as ft
-from config import USER_DASHBOARD_IMAGE
+import random
 from typing import TYPE_CHECKING
+from config import USER_DASHBOARD_IMAGE, USER_DASHBOARD_MARQUEE_MESSAGES
+from constants import *
 
 if TYPE_CHECKING:
     from main import App
 
 def build_dashboard_content(app_instance: 'App') -> ft.Container:
-    """
-    建立旅客 App 的「主畫面」內容 (您的截圖 1)
-    """
+    # 隨機跑馬燈文字
+    selected_message = random.choice(USER_DASHBOARD_MARQUEE_MESSAGES)
+
     return ft.Container(
         expand=True,
+        bgcolor=COLOR_BG_LIGHT_TAN,
         content=ft.Column(
             [
+                # --- 顯示跑馬燈 ---
+                ft.Container(
+                    content=ft.Row(
+                        [
+                            ft.Icon(ft.Icons.ASSISTANT, color=ft.Colors.WHITE70, size=14),
+                            ft.Text(selected_message, size=12, color=ft.Colors.WHITE)
+                        ], 
+                        alignment=ft.MainAxisAlignment.CENTER
+                    ),
+                    height=36,
+                    bgcolor=ft.Colors.BLACK54,
+                    border_radius=10,
+                    padding=ft.padding.symmetric(horizontal=15, vertical=8),
+                ),
+
+                # --- user home page 的圖片 ---
                 ft.Container(
                     padding=10,
                     bgcolor=ft.Colors.WHITE,
@@ -24,6 +43,7 @@ def build_dashboard_content(app_instance: 'App') -> ft.Container:
                         fit=ft.ImageFit.COVER,
                         border_radius=ft.border_radius.all(10),
                     ),
+                    alignment=ft.alignment.center,
                 ),
             ],
             spacing=10,

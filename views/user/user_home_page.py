@@ -1,11 +1,15 @@
 import flet as ft
 from constants import *
+from config import USER_DASHBOARD_NAVIGATOR_ITEMS
 from typing import TYPE_CHECKING
  
+# --- [修改] 導入所有 5 個內容頁面 ---
 from views.user.user_home_page_content import build_dashboard_content
 from views.user.user_booking_instant import build_instant_booking_content
 from views.user.user_booking_previous import build_roundtrip_content
 from views.user.user_supporting import build_support_content
+from views.user.user_home_page_more_content import build_more_content
+
 
 if TYPE_CHECKING:
     from main import App
@@ -13,39 +17,38 @@ if TYPE_CHECKING:
 def build_user_app_view(app_instance: 'App') -> ft.View:
     """
     建立「旅客 App」的主殼 (Shell)
-    這是一個「愚笨」的 UI 建立器
     """
-    
-    # --- 決定 App 啟動時的預設畫面 ---
-    # 我們預設載入「即時預約」 (index 1)
-    # (這對 Demo 您的新 UI 流程最有幫助)
-    DEFAULT_CONTENT = build_instant_booking_content(app_instance)
-    DEFAULT_INDEX = 1
+    DEFAULT_CONTENT = build_dashboard_content(app_instance)
+    # 預設選中 "首頁"
+    DEFAULT_INDEX = 2
 
     return ft.View(
         route="/app/user",
         padding=0,
-        bgcolor=COLOR_BG_LIGHT_TAN, # App 的淺色背景
+        bgcolor=COLOR_BG_LIGHT_TAN,
 
-        # 頂部 AppBar (Logo)
+        # --- 頂部 App Bar ---
         appbar=ft.AppBar(
-            title=ft.Row([
-                ft.Icon(ft.Icons.LUGGAGE_OUTLINED, size=30),
-                ft.Text("e-baggage", size=24, weight=ft.FontWeight.BOLD)
-            ]),
+            title=ft.Row(
+                controls=[
+                    ft.Icon(ft.Icons.LUGGAGE_OUTLINED, size=30),
+                    ft.Text("E-baggage", size=24, weight=ft.FontWeight.BOLD)
+                ],
+                alignment=ft.MainAxisAlignment.CENTER
+            ),
             center_title=True,
             bgcolor=COLOR_BRAND_YELLOW,
         ),
 
-        # 底部導航列 (Bottom Nav Bar)
+        # --- 底部導航列 ---
         navigation_bar=ft.NavigationBar(
             destinations=[
-                ft.NavigationBarDestination(icon=ft.Icons.MENU, label="更多"),
-                ft.NavigationBarDestination(icon=ft.Icons.LOCATION_ON, label="即時預約"),
-                ft.NavigationBarDestination(icon=ft.Icons.COMPARE_ARROWS, label="來回預約"),
-                ft.NavigationBarDestination(icon=ft.Icons.CALL, label="客服"),
+                ft.NavigationBarDestination(
+                        icon=ft.Icon(item["icon"]),
+                        label=item["label"],
+                    ) for item in USER_DASHBOARD_NAVIGATOR_ITEMS
             ],
-            selected_index=DEFAULT_INDEX,
+            selected_index=DEFAULT_INDEX, # 預設選中「首頁」
             
             # 將 on_change 綁定到 App 類別的「控制器」方法
             on_change=app_instance.handle_nav_bar_change,
