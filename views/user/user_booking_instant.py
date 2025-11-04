@@ -1,3 +1,4 @@
+# views/user/user_booking_instant.py
 import flet as ft
 import flet_map as map
 from constants import *
@@ -43,8 +44,9 @@ def build_instant_booking_content(app_instance: 'App') -> ft.Stack:
             width=375,
             padding=20,
             bgcolor=COLOR_BG_LIGHT_TAN,
-            border_radius=ft.BorderRadius(top_left=20, top_right=20),
+            border_radius=ft.BorderRadius(top_left=10, top_right=10, bottom_left=10, bottom_right=10),
             shadow=ft.BoxShadow(spread_radius=1, blur_radius=20, color=ft.Colors.BLACK26),
+            
             content=ft.Column(
                 controls=[
                     ft.Text("即時預約", size=24, weight=ft.FontWeight.BOLD),
@@ -98,7 +100,6 @@ def build_instant_booking_content(app_instance: 'App') -> ft.Stack:
                     )
                 ],
                 spacing=10,
-                # main_axis_size=ft.MainAxisSize.MIN, 
             )
         )
     )

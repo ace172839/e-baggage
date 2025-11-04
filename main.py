@@ -158,16 +158,15 @@ class App:
             self.page.session.set("role", role)
             self.page.session.set("email", self.login_username.current.value)
             self.page.go(f"/app/{role}")
+        else:
+            if self.captcha_text.current.value != self.login_captcha.current.value:
+                self.login_error_text.current.value = "驗證碼錯誤，請重新輸入。"
+                self.login_error_text.current.visible = True
+                self.page.update()
+                return
         ################################
         ########## DEBUG MODE ##########
         ################################
-
-        """處理登入按鈕點擊事件"""
-        if self.captcha_text.current.value != self.login_captcha.current.value:
-            self.login_error_text.current.value = "驗證碼錯誤，請重新輸入。"
-            self.login_error_text.current.visible = True
-            self.page.update()
-            return
 
         user_email = self.login_username.current.value
         
