@@ -41,7 +41,7 @@ def build_login_view(app_instance: 'App', role: str) -> ft.View:
                         # 角色標題
                         ft.Row([
                             ft.Icon(role_icon, size=40),
-                            ft.Text(role_text, size=36, weight=ft.FontWeight.BOLD),
+                            ft.Text(role_text, size=36, weight=ft.FontWeight.BOLD, color=COLOR_TEXT_DARK),
                         ]),
                         
                         ft.Divider(height=10, color=ft.Colors.TRANSPARENT),

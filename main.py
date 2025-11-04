@@ -69,17 +69,23 @@ class App:
         self.page.window.width = WINDOW_WIDTH
         self.page.window.height = WINDOW_HEIGHT
         self.page.window.resizable = False
+        self.page.window.always_on_top = True
         # -------------------------
 
         # --- 字體設定 ---
         self.page.fonts = {
-            "Noto Sans TC": "https://fonts.google.com/D/s/notosanstc/v36/LtaNKyFl-prt-H8vUcGyjNMbN-SgPOY.ttf",
-            "Noto Serif TC": "https://fonts.google.com/D/s/notoseriftc/v25/jVbvNIa-s-m3EeWvCpr2s6e8kic6-g.ttf",
+            "Noto Sans TC": "NotoSansTC-Regular.ttf",
+            "Noto Serif TC": "NotoSerifTC-Regular.ttf",
         }
         self.page.theme = ft.Theme(
             font_family="Noto Sans TC",
             color_scheme=ft.ColorScheme(
-                on_surface=COLOR_TEXT_DARK 
+                #primary=COLOR_TEXT_DARK,
+                secondary=COLOR_TEXT_DARK,
+                surface=COLOR_TEXT_DARK,
+                on_surface=COLOR_TEXT_DARK,
+                surface_container=COLOR_TEXT_DARK,
+                
             )
         )
         
@@ -150,47 +156,53 @@ class App:
         self.captcha_text.current.value = new_code
         self.page.update()
 
+    def _show_login_error(self, message: str):
+        """輔助函式：在登入表單上顯示錯誤訊息"""
+        if self.login_error_text.current:
+            self.login_error_text.current.value = message
+            self.login_error_text.current.visible = True
+            self.page.update()
+
     def login_view_handle_login(self, e, role: str):
-        ################################
-        ########## DEBUG MODE ##########
-        ################################
+        """處理登入按鈕點擊事件，包含驗證邏輯"""
+        
+        # --- 模式 1: 偵錯模式 (跳過所有驗證) ---
         if self.mode == "debug":
+            logger.warning("在偵錯模式下登入，已跳過驗證。")
             self.page.session.set("logged_in", True)
             self.page.session.set("role", role)
             self.page.session.set("email", self.login_username.current.value)
             self.page.go(f"/app/{role}")
-        else:
-            if self.captcha_text.current.value != self.login_captcha.current.value:
-                self.login_error_text.current.value = "驗證碼錯誤，請重新輸入。"
-                self.login_error_text.current.visible = True
-                self.page.update()
-                return
-        ################################
-        ########## DEBUG MODE ##########
-        ################################
-
-        user_email = self.login_username.current.value if self.login_username.current else "123"
+            return
         
-        # Don't check account/password for demo purpose
+        # --- 模式 2: 正式模式 (執行完整驗證) ---
+        
+        # 提取表單數值
+        user_email = self.login_username.current.value
+        password = self.login_password.current.value
+        captcha_input = self.login_captcha.current.value
+        captcha_correct = self.captcha_text.current.value
+        
+        # 驗證 1: 驗證碼
+        if captcha_input != captcha_correct:
+            self._show_login_error("驗證碼錯誤，請重新輸入。")
+            return
+        
+        # 驗證 2: 帳號
         if not user_email:
-            self.login_error_text.current.value = "請輸入一個帳號"
-            self.login_error_text.current.visible = True
-            self.page.update()
+            self._show_login_error("請輸入您的帳號。")
             return
-        if not self.login_password.current.value or \
-           len(self.login_password.current.value) < 8 or \
-           len(self.login_password.current.value) > 10:
-            self.login_error_text.current.value = "請輸入有效的密碼"
-            self.login_error_text.current.visible = True
-            self.page.update()
+        
+        # 驗證 3: 密碼
+        if not password or not (8 <= len(password) <= 10):
+            self._show_login_error("請輸入 8-10 位數的有效密碼。")
             return
-
-        # --- 登入成功 ---
+        
+        # --- 所有驗證通過 ---
+        logger.info(f"使用者 {user_email} 成功登入，角色為 {role}")
         self.page.session.set("logged_in", True)
         self.page.session.set("role", role)
         self.page.session.set("email", user_email)
-
-        # 導航到登入後的 App 畫面
         self.page.go(f"/app/{role}")
 
     def handle_scan_baggage(self):
@@ -207,27 +219,26 @@ class App:
         selected_index = int(e.data) 
         content = None
 
-        if selected_index == 0: # 首頁 (新)
-            content = build_dashboard_content(self)
-            logger.info("切換到「首頁」儀表板")
-        
-        elif selected_index == 1: # 即時預約
-            content = build_instant_booking_content(self)
-            logger.info("切換到「即時預約」")
-
-        elif selected_index == 2: # 來回預約 (事先預約)
-            content = build_roundtrip_content(self)
-            logger.info("切換到「事先預約 - 啟程返程」")
-
-        elif selected_index == 3: # 客服
-            content = build_support_content(self)
-            logger.info("切換到「客服」")
-        
-        elif selected_index == 4: # 更多 (新)
+        if selected_index == 0:
             content = build_more_content(self)
             logger.info("切換到「更多」列表")
+        elif selected_index == 1:
+            content = build_instant_booking_content(self)
+            logger.info("切換到「即時預約」")
+        elif selected_index == 2:
+            content = build_dashboard_content(self)
+            logger.info("切換到「首頁」儀表板")
+        elif selected_index == 3:
+            content = build_roundtrip_content(self)
+            logger.info("切換到「事先預約」")
+        elif selected_index == 4:
+            content = build_support_content(self)
+            logger.info("切換到「客服」")
+        else:
+            logger.error(f"Unknown selected index: {selected_index}")
+            return
         
-        # 替換主內容區域的 UI
+        # 更新主內容區域
         if self.main_content_ref.current:
             self.main_content_ref.current.content = content
             self.main_content_ref.current.update()
