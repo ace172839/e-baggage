@@ -30,7 +30,7 @@ USER_DASHBOARD_MORE_ITEMS = [
     {"icon": icons.SETTINGS_OUTLINED, "label": "系統設定", "route": "/app/user/settings"},
 ]
 
-USER_DASHBOARD_DEFAULT_LOCATION = (25.01443, 121.4638)  # 板橋車站
+USER_DASHBOARD_MAP_DEFAULT_LOCATION = (25.01443, 121.4638)  # 板橋車站
 # USER_DASHBOARD_DEFAULT_LOCATION = (25.03396, 121.5644)  # 台北 101
 # USER_DASHBOARD_MAP_TEMPLATE = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"
 USER_DASHBOARD_MAP_TEMPLATE = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
