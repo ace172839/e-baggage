@@ -85,7 +85,9 @@ class App:
                 surface=COLOR_TEXT_DARK,
                 on_surface=COLOR_TEXT_DARK,
                 surface_container=COLOR_TEXT_DARK,
-                
+            ),
+            icon_theme=ft.IconTheme(
+                color=COLOR_ICON_WHITE
             )
         )
         

@@ -53,7 +53,7 @@ def build_user_app_view(app_instance: 'App') -> ft.View:
             # 將 on_change 綁定到 App 類別的「控制器」方法
             on_change=app_instance.handle_nav_bar_change,
             
-            bgcolor=ft.Colors.WHITE,
+            bgcolor=COLOR_BACKGROUD_YELLOW,
         ),
 
         # 主內容區域

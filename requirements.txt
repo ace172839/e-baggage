@@ -8,4 +8,5 @@ pillow
 appdirs
 flet
 flet-map
+flet-geolocator
 pyinstaller
