@@ -29,6 +29,186 @@
       "lon": 121.5650,
       "is_partner": false,
       "offer": ""
+    },
+    {
+      "id": "H004",
+      "name": "板橋凱撒大飯店",
+      "address": "220新北市板橋區縣民大道二段8號",
+      "lat": 25.0145,
+      "lon": 121.4645,
+      "is_partner": true,
+      "offer": "房客行李 85 折"
+    },
+    {
+      "id": "H005",
+      "name": "傑仕堡有氧酒店",
+      "address": "220新北市板橋區縣民大道二段275號",
+      "lat": 25.0162,
+      "lon": 121.4611,
+      "is_partner": true,
+      "offer": "首件行李免費"
+    },
+    {
+      "id": "H006",
+      "name": "板橋趣淘漫旅",
+      "address": "220新北市板橋區中山路一段139號",
+      "lat": 25.012,
+      "lon": 121.4625,
+      "is_partner": false,
+      "offer": ""
+    },
+    {
+      "id": "H007",
+      "name": "府中棧精品商旅",
+      "address": "220新北市板橋區府中路30號",
+      "lat": 25.0105,
+      "lon": 121.458,
+      "is_partner": true,
+      "offer": "運費折抵 50 元"
+    },
+    {
+      "id": "H008",
+      "name": "單人房住宿空間-板橋館",
+      "address": "220新北市板橋區明德街1巷10號",
+      "lat": 25.0098,
+      "lon": 121.4595,
+      "is_partner": false,
+      "offer": ""
+    },
+    {
+      "id": "H009",
+      "name": "金采商旅",
+      "address": "220新北市板橋區館前西路139號",
+      "lat": 25.0088,
+      "lon": 121.4558,
+      "is_partner": true,
+      "offer": "行李運送 9 折"
+    },
+    {
+      "id": "H010",
+      "name": "板橋馥華飯店",
+      "address": "220新北市板橋區民生路二段251號",
+      "lat": 25.0211,
+      "lon": 121.4698,
+      "is_partner": false,
+      "offer": ""
+    },
+    {
+      "id": "H011",
+      "name": "萊恩精品旅館",
+      "address": "220新北市板橋區四川路一段100號",
+      "lat": 25.0075,
+      "lon": 121.4542,
+      "is_partner": false,
+      "offer": ""
+    },
+    {
+      "id": "H012",
+      "name": "皇品時尚旅店",
+      "address": "220新北市板橋區重慶路61號",
+      "lat": 25.0101,
+      "lon": 121.4599,
+      "is_partner": true,
+      "offer": "續住客免費運送"
+    },
+    {
+      "id": "H013",
+      "name": "百麗旅店",
+      "address": "220新北市板橋區成都街65號",
+      "lat": 25.0115,
+      "lon": 121.4567,
+      "is_partner": false,
+      "offer": ""
+    },
+    {
+      "id": "H014",
+      "name": "寒舍艾麗酒店",
+      "address": "110台北市信義區松高路18號",
+      "lat": 25.0388,
+      "lon": 121.567,
+      "is_partner": true,
+      "offer": "行李運送 9 折"
+    },
+    {
+      "id": "H015",
+      "name": "誠品行旅",
+      "address": "110台北市信義區菸廠路98號",
+      "lat": 25.0426,
+      "lon": 121.5606,
+      "is_partner": true,
+      "offer": "會員免運"
+    },
+    {
+      "id": "H016",
+      "name": "思泊客飯店",
+      "address": "110台北市信義區信義路五段109號",
+      "lat": 25.032,
+      "lon": 121.568,
+      "is_partner": false,
+      "offer": ""
+    },
+    {
+      "id": "H017",
+      "name": "台北艾美酒店",
+      "address": "110台北市信義區松仁路38號",
+      "lat": 25.036,
+      "lon": 121.5685,
+      "is_partner": true,
+      "offer": "運費折抵 100 元"
+    },
+    {
+      "id": "H018",
+      "name": "Home Hotel 信義",
+      "address": "110台北市信義區松壽路9號",
+      "lat": 25.0355,
+      "lon": 121.5665,
+      "is_partner": false,
+      "offer": ""
+    },
+    {
+      "id": "H019",
+      "name": "太平洋商旅",
+      "address": "110台北市信義區光復南路495號",
+      "lat": 25.0358,
+      "lon": 121.5588,
+      "is_partner": true,
+      "offer": "行李運送 9 折"
+    },
+    {
+      "id": "H020",
+      "name": "信義區的測試民宿",
+      "address": "110台北市信義區莊敬路178巷",
+      "lat": 25.0325,
+      "lon": 121.563,
+      "is_partner": false,
+      "offer": ""
+    },
+    {
+      "id": "H021",
+      "name": "THE Tango Hotel",
+      "address": "110台北市信義區忠孝東路五段297號",
+      "lat": 25.0418,
+      "lon": 121.571,
+      "is_partner": false,
+      "offer": ""
+    },
+    {
+      "id": "H022",
+      "name": "洛碁大飯店松山館",
+      "address": "110台北市信義區中坡南路197號",
+      "lat": 25.044,
+      "lon": 121.579,
+      "is_partner": true,
+      "offer": "續住客免費運送"
+    },
+    {
+      "id": "H023",
+      "name": "富邦藝旅",
+      "address": "110台北市信義區菸廠路88號",
+      "lat": 25.042,
+      "lon": 121.561,
+      "is_partner": false,
+      "offer": ""
     }
   ]
 }
