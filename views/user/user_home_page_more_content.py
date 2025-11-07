@@ -3,6 +3,8 @@ from typing import TYPE_CHECKING
 
 from config import WINDOW_WIDTH
 from config import USER_DASHBOARD_MORE_ITEMS as more_items
+from constants import *
+
 
 if TYPE_CHECKING:
     from main import App
@@ -15,16 +17,15 @@ def build_more_content(app_instance: 'App') -> ft.Column:
     for item in more_items:
         controls_list.append(
             ft.ListTile(
-                title=ft.Text(item["label"], size=18),
+                title=ft.Text(item["label"], size=24),
                 leading=ft.Icon(item["icon"]),
-                on_click=lambda e: app_instance.page.go(item["route"]),
+                on_click=lambda e, route=item["route"]: app_instance.page.go(route),
                 trailing=ft.Icon(ft.Icons.NAVIGATE_NEXT),
             )
         )
-        controls_list.append(ft.Divider(height=1))
+        controls_list.append(ft.Divider(height=1, visible=False))
 
     return ft.Column(
         controls=controls_list,
-        expand=True,
-        scroll=ft.ScrollMode.AUTO
+        scroll=ft.ScrollMode.AUTO,
     )

@@ -31,13 +31,17 @@ def build_user_app_view(app_instance: 'App') -> ft.View:
         appbar=ft.AppBar(
             title=ft.Row(
                 controls=[
-                    ft.Icon(ft.Icons.LUGGAGE_OUTLINED, size=30),
-                    ft.Text("E-baggage", size=24, weight=ft.FontWeight.BOLD)
+                    ft.Image(
+                        src="images/logo.png",
+                        width=75,
+                        height=75,
+                        fit=ft.ImageFit.CONTAIN
+                    )
                 ],
                 alignment=ft.MainAxisAlignment.CENTER
             ),
             center_title=True,
-            bgcolor=COLOR_BRAND_YELLOW,
+            bgcolor=COLOR_BG_DARK_GOLD,
         ),
 
         # --- 底部導航列 ---
@@ -52,7 +56,6 @@ def build_user_app_view(app_instance: 'App') -> ft.View:
             
             # 將 on_change 綁定到 App 類別的「控制器」方法
             on_change=app_instance.handle_nav_bar_change,
-            
             bgcolor=COLOR_BACKGROUD_YELLOW,
         ),
 

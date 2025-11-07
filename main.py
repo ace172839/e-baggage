@@ -68,7 +68,7 @@ class App:
         self.driver_marker_ref = ft.Ref[map.Marker]()
         self.search_bar_ref = ft.Ref[ft.Container]()
         self.search_text_ref = ft.Ref[ft.TextField]()
-        self.scan_results_text = "24吋 深灰色硬殼行李箱 1 個\n24吋 黑色硬殼行李箱 1 個\n24吋 白色硬殼行李箱 1 個\n20吋 深藍色硬殼行李箱 1 個\n20吋 玫瑰金硬殼行李箱 1 個。"
+        self.scan_results = 0
         self.scan_confirmed = False
         self.driver_alert_dialog = ft.Ref[ft.AlertDialog]()
         
@@ -90,20 +90,42 @@ class App:
         self.page.fonts = {
             "LXGWWenKaiTC-Regular": "fonts/LXGWWenKaiTC-Regular.ttf",
         }
+        # self.page.locale_configuration = ft.LocaleConfiguration(
+        #     supported_locales=[
+        #         ft.Locale("en", "US"),
+        #         ft.Locale("zh", "TW")
+        #     ],
+        #     current_locale=ft.Locale("en", "US")
+        # )
         self.page.theme = ft.Theme(
             font_family="LXGWWenKaiTC-Regular",
             color_scheme=ft.ColorScheme(
-                primary=COLOR_TEXT_DARK,
-                secondary=COLOR_TEXT_DARK,
-                surface=COLOR_TEXT_DARK,
+                primary=COLOR_BRAND_YELLOW,
+                on_primary=COLOR_TEXT_DARK,
+                surface=ft.Colors.WHITE,
                 on_surface=COLOR_TEXT_DARK,
-                surface_container=COLOR_TEXT_DARK,
+                background=COLOR_BG_LIGHT_TAN,
+                on_background=COLOR_TEXT_DARK,
+                secondary=COLOR_BRAND_YELLOW,
+                on_secondary=COLOR_TEXT_DARK,
+                on_surface_variant=ft.Colors.GREY_600,
+            ),
+            date_picker_theme=ft.DatePickerTheme(
+                bgcolor=ft.Colors.WHITE,
+                locale=ft.Locale("zh", "TW")
             ),
             icon_theme=ft.IconTheme(
                 color=COLOR_ICON_WHITE
+            ),
+            data_table_theme=ft.DataTableTheme(
+                data_text_style=ft.TextStyle(
+                    size=12,
+                    color=COLOR_TEXT_DARK
+                ),
+                heading_row_height=0,
+                divider_thickness=0
             )
         )
-        
         self.page.on_route_change = create_route_handler(self)
         self.page.go("/splash")
 
@@ -300,9 +322,7 @@ class App:
         
         logger.info("Scan confirmed")
         self.scan_confirmed = True
-        self.page.snack_bar = ft.SnackBar(ft.Text("行李掃描結果已儲存！"), open=True)
-        # *** 修改點：返回「旅客首頁」頁面 ***
-        self.page.go("/app/user")
+        self.page.go("/app/user/booking_instant")
 
     def handle_order_cancel(self, e):
         

@@ -8,12 +8,33 @@ import logging
 import json
 import datetime
 import random
-from urllib.parse import quote_plus
+from urllib.parse import quote_plus, parse_qs
 
 if TYPE_CHECKING:
     from main import App
 
 logger = logging.getLogger(__name__)
+
+DEMO_DB_PATH = "demo_db.json"
+
+# Helper function to save order to demo_db.json
+def save_order_to_db(order_data: dict):
+    try:
+        with open(DEMO_DB_PATH, 'r', encoding='utf-8') as f:
+            db_data = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        db_data = {"users": {}, "orders": [], "scans": [], "partner_hotels": []}
+
+    orders = db_data.get('orders', [])
+    orders.append(order_data)
+
+    # Sort orders by date in descending order
+    orders.sort(key=lambda order: datetime.datetime.strptime(order['date'], '%Y/%m/%d'), reverse=True)
+    db_data['orders'] = orders
+
+    with open(DEMO_DB_PATH, 'w', encoding='utf-8') as f:
+        json.dump(db_data, f, ensure_ascii=False, indent=2)
+    logger.info(f"Order {order_data['id']} saved to {DEMO_DB_PATH}")
 
 def build_previous_booking_view(app_instance: 'App') -> ft.Control:
     """
@@ -92,21 +113,17 @@ def build_previous_booking_view(app_instance: 'App') -> ft.Control:
         app_instance.page.update()
 
     def show_confirm_view(e):
-        """
-        建立「確認畫面」並將其顯示在主內容區域
-        (這才是您缺少的邏輯)
-        """
         logger.info("切換到「事先預約」確認畫面")
-        # 呼叫 build_previous_booking_confirm_view 來取得 UI 控制項
-        confirm_view_content = build_previous_booking_confirm_view(app_instance)
-        
-        # 將 UI 控制項放入 main_content_ref (來自 main.py)
-        if app_instance.main_content_ref.current:
-            app_instance.main_content_ref.current.content = confirm_view_content
-            # 告訴 Flet 更新這個容器
-            app_instance.main_content_ref.current.update() 
-        else:
-            logger.error("main_content_ref (主內容容器) 尚未被 Flet 綁定！")
+
+        # Collect form data
+        arrival_date = arrival_date_ref.current.value if arrival_date_ref.current else ""
+        return_date = return_date_ref.current.value if return_date_ref.current else ""
+        pickup_location = pickup_location_ref.current.value if pickup_location_ref.current else ""
+        dropoff_location = dropoff_location_ref.current.value if dropoff_location_ref.current else ""
+
+        # Construct URL with query parameters
+        query_params = f"arrival_date={quote_plus(arrival_date)}&return_date={quote_plus(return_date)}&pickup_location={quote_plus(pickup_location)}&dropoff_location={quote_plus(dropoff_location)}"
+        app_instance.page.go(f"/app/user/booking_previous_confirm?{query_params}")
 
     # --- 6. 建立頁面佈局 ---
     return ft.Container(
@@ -169,17 +186,54 @@ def build_previous_booking_confirm_view(app_instance: 'App') -> ft.Control:
     """
     logger.info("正在建立「事先預約」的確認訂單頁面 (build_previous_booking_confirm_view)")
 
+    # Extract query parameters from the route
+    query_string = app_instance.page.route.split('?')
+    if len(query_string) > 1:
+        query_params = parse_qs(query_string[1])
+        arrival_date = query_params.get('arrival_date', [''])[0]
+        return_date = query_params.get('return_date', [''])[0]
+        pickup_location = query_params.get('pickup_location', [''])[0]
+        dropoff_location = query_params.get('dropoff_location', [''])[0]
+    else:
+        arrival_date = "未知"
+        return_date = "未知"
+        pickup_location = "未知"
+        dropoff_location = "未知"
+
     order_list_rows = []
-    for booking in PREVIOUS_BOOKING_LIST:
-        second_field_text = booking["time"] if booking["time"] else "入住"
-        order_list_rows.append(ft.DataRow(
-            cells=[
-                ft.DataCell(ft.Text(booking["start_date"])),
-                ft.DataCell(ft.Text(second_field_text)),
-                ft.DataCell(ft.Text(booking["location"]))
-            ]
-        ))
-    
+    # For previous booking, we don't have a PREVIOUS_BOOKING_LIST to display here
+    # Instead, we display the current booking details
+    order_list_rows.append(ft.DataRow(
+        cells=[
+            ft.DataCell(ft.Text("抵達日期:")),
+            ft.DataCell(ft.Text(arrival_date)),
+            ft.DataCell(ft.Text("")),
+        ]
+    ))
+    order_list_rows.append(ft.DataRow(
+        cells=[
+            ft.DataCell(ft.Text("抵達地點:")),
+            ft.DataCell(ft.Text(pickup_location)),
+            ft.DataCell(ft.Text("")),
+        ]
+    ))
+    order_list_rows.append(ft.DataRow(
+        cells=[
+            ft.DataCell(ft.Text("返程日期:")),
+            ft.DataCell(ft.Text(return_date)),
+            ft.DataCell(ft.Text("")),
+        ]
+    ))
+    order_list_rows.append(ft.DataRow(
+        cells=[
+            ft.DataCell(ft.Text("返程地點:")),
+            ft.DataCell(ft.Text(dropoff_location)),
+            ft.DataCell(ft.Text("")),
+        ]
+    ))
+
+    # The uncontracted_list_rows logic seems to be for displaying existing bookings, not the current one.
+    # I will keep it as is for now, but it might need review if it's not relevant to the current booking confirmation.
     uncontracted_list_rows = []
     for booking in PREVIOUS_BOOKING_LIST:
         if not booking["contracted"]:
@@ -192,27 +246,41 @@ def build_previous_booking_confirm_view(app_instance: 'App') -> ft.Control:
     
     def handle_submit(e):
         logger.info("「送出預約」按鈕被點擊，準備重設內容到儀表板")
-        
-        # 【問題點】下面這行在路由相同時無效
-        # app_instance.page.go("/app/user") 
-        
-        # 【修正】
-        # 1. 重新建立「儀表板」的 UI 內容
-        #    (我們在檔案頂部 import 了 build_dashboard_content)
-        try:
-            dashboard_content = build_dashboard_content(app_instance)
-        except Exception as ex:
-            logger.error(f"建立儀表板內容時出錯: {ex}")
-            # 備用方案：至少清空
-            dashboard_content = ft.Text("返回儀表板時發生錯誤。", color=ft.Colors.RED)
 
-        # 2. 將儀表板 UI 塞回主內容容器 (main_content_ref)
-        if app_instance.main_content_ref.current:
-            app_instance.main_content_ref.current.content = dashboard_content
-            app_instance.main_content_ref.current.update()
-        else:
-            logger.error("main_content_ref 遺失，無法返回儀表板！")
-        app_instance.page.update()
+        # Use extracted values
+        luggages = "1" # Still placeholder, needs to be dynamic if possible
+        amount = "300" # Still placeholder, needs to be dynamic if possible
+
+        # Generate a new order ID
+        try:
+            with open(DEMO_DB_PATH, 'r', encoding='utf-8') as f:
+                db_data = json.load(f)
+            existing_orders = db_data.get('orders', [])
+            max_id = 0
+            for order in existing_orders:
+                if order['id'].startswith('O'):
+                    try:
+                        num = int(order['id'][1:])
+                        if num > max_id:
+                            max_id = num
+                    except ValueError:
+                        pass
+            new_order_id = f"O{max_id + 1:03d}"
+        except (FileNotFoundError, json.JSONDecodeError):
+            new_order_id = "O001"
+
+        new_order = {
+            "id": new_order_id,
+            "date": arrival_date, # Use arrival_date as the order date
+            "pickup": pickup_location,
+            "dropof": dropoff_location,
+            "amount": amount,
+            "luggages": luggages
+        }
+
+        save_order_to_db(new_order)
+
+        app_instance.page.go("/app/user")
 
     return ft.Container(
         content=ft.Column(

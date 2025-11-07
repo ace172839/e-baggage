@@ -65,25 +65,17 @@ def build_confirm_order_view(app_instance: 'App') -> ft.View:
     info_card = ft.Container(
         padding=30,
         bgcolor=COLOR_BG_LIGHT_TAN,
-        border_radius=ft.BorderRadius(top_left=15, top_right=15),
+        border_radius=ft.BorderRadius(top_left=10, top_right=10, bottom_left=10, bottom_right=10),
         content=ft.Column(
             controls=[
                 ft.Text("訂單確認", size=24, weight=ft.FontWeight.BOLD),
                 ft.Text(f"上車地點：{pickup_name}"),
                 ft.Text(f"下車地點：{dropoff_name}"),
                 ft.Divider(height=5, color=ft.Colors.TRANSPARENT),
-                ft.Text.Rich(
-                    ft.TextSpan(
-                        "根據您的行李數量及大小，推薦車款為 ",
-                        spans=[
-                            ft.TextSpan(
-                                "休旅車",
-                                style=ft.TextStyle(color=ft.Colors.BLUE, weight=ft.FontWeight.BOLD)
-                            ),
-                            ft.TextSpan("，預計費用為 250 元，預計行李抵達時間 50 分鐘")
-                        ]
-                    )
-                ),
+                ft.Text("根據您的行李數量及大小，", color=COLOR_TEXT_DARK),
+                ft.Text("        推薦車款為: 休旅車", color=COLOR_TEXT_DARK),
+                ft.Text("        預計費用為: 250 元", color=COLOR_TEXT_DARK),
+                ft.Text("預計行李抵達旅館時間: 50 分鐘", color=COLOR_TEXT_DARK),
                 ft.Divider(height=10, color=ft.Colors.TRANSPARENT),
                 ft.Row(
                     controls=[
@@ -109,7 +101,7 @@ def build_confirm_order_view(app_instance: 'App') -> ft.View:
                 )
             ],
             height=260,
-            scroll=ft.ScrollMode.ADAPTIVE
+            scroll=ft.ScrollMode.ADAPTIVE,
         )
     )
 

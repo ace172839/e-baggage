@@ -2,7 +2,7 @@ import logging
 import flet as ft
 from typing import TYPE_CHECKING
 
-from config import WINDOW_HEIGHT, WINDOW_WIDTH
+from config import WINDOW_HEIGHT, WINDOW_WIDTH, SCAN_RESULT_LSIT
 from constants import *
 
 if TYPE_CHECKING:
@@ -66,6 +66,10 @@ def build_scan_view(app_instance: 'App') -> ft.View:
 def build_scan_results_view(app_instance: 'App') -> ft.View:
     
     logger.info("Building Scan Results View")
+    scan_result_text = ""
+    for baggage in SCAN_RESULT_LSIT:
+        scan_result_text += f"{baggage['size']}吋{baggage['color']}{baggage['type']} {baggage['quantity']} 件\n"
+    app_instance.scan_results = len(SCAN_RESULT_LSIT)
     
     return ft.View(
         route="/app/user/scan_results",
@@ -94,7 +98,7 @@ def build_scan_results_view(app_instance: 'App') -> ft.View:
                         content=ft.Column(
                             controls=[
                                 ft.Text("掃描結果", size=20, weight=ft.FontWeight.BOLD, color=COLOR_TEXT_DARK),
-                                ft.Text(app_instance.scan_results_text, size=14, color=ft.Colors.GREY_800),
+                                ft.Text(scan_result_text, size=14, color=ft.Colors.GREY_800),
                                 ft.Text("請問是否正確？", size=16, color=COLOR_TEXT_DARK),
                                 ft.Divider(height=10, color=ft.Colors.TRANSPARENT),
                                 ft.Row(
