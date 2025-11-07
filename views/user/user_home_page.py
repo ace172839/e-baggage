@@ -5,8 +5,8 @@ from typing import TYPE_CHECKING
  
 # --- [修改] 導入所有 5 個內容頁面 ---
 from views.user.user_home_page_content import build_dashboard_content
-from views.user.user_booking_instant import build_instant_booking_content
-from views.user.user_booking_previous import build_roundtrip_content
+from views.user.user_booking_instant import build_instant_booking_view
+from views.user.user_booking_previous import build_previous_booking_view
 from views.user.user_supporting import build_support_content
 from views.user.user_home_page_more_content import build_more_content
 

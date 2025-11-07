@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from main import App
 
-def build_roundtrip_content(app_instance: 'App') -> ft.Container:
+def build_previous_booking_view(app_instance: 'App') -> ft.Container:
     """
     建立「事先預約 - 啟程返程」的 UI (精靈第 1 步)
     """

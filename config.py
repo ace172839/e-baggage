@@ -30,8 +30,13 @@ USER_DASHBOARD_MORE_ITEMS = [
     {"icon": icons.SETTINGS_OUTLINED, "label": "系統設定", "route": "/app/user/settings"},
 ]
 
-# USER_DASHBOARD_MAP_DEFAULT_LOCATION = (25.01443, 121.4638)  # 板橋車站
-USER_DASHBOARD_DEFAULT_LOCATION = (25.03396, 121.5644)  # 台北 101
-# USER_DASHBOARD_MAP_TEMPLATE = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"
+# --- Demo 地點座標 ---
+LOCATION_TAIPEI_101 = (25.03396, 121.5644)  # 台北 101 (預設地點)
+LOCATION_BANQIAO_STATION = (25.01443, 121.4638)  # 板橋車站
+LOCATION_TAIPEI_CITY_HALL = (25.0374, 121.5647) # 台北市政府 (司機位置)
+# ---------------------
+
+USER_DASHBOARD_DEFAULT_LOCATION = LOCATION_TAIPEI_101
 USER_DASHBOARD_MAP_TEMPLATE = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
 # USER_DASHBOARD_MAP_TEMPLATE = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+# USER_DASHBOARD_MAP_TEMPLATE = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"
