@@ -1,14 +1,11 @@
 import flet as ft
 import datetime
 from typing import TYPE_CHECKING
-from config import PREVIOUS_BOOKING_LIST
-from constants import * # 用於按鈕樣式
-from views.user.user_home_page_content import build_dashboard_content # ADDED
 import logging
-import json
-import datetime
-import random
-from urllib.parse import quote_plus
+
+from config import PREVIOUS_BOOKING_LIST
+from constants import *
+from views.common_components import build_bottom_nav_bar
 
 if TYPE_CHECKING:
     from main import App
@@ -22,146 +19,80 @@ def build_previous_booking_view(app_instance: 'App') -> ft.Control:
     """
     logger.info("正在建立「事先預約」內容 (build_previous_booking_view)")
 
-    # --- 1. Refs ---
-    # 需要 Refs 來在選擇日期後更新 TextField 的值
-    arrival_date_ref = ft.Ref[ft.TextField]()
-    return_date_ref = ft.Ref[ft.TextField]()
-    pickup_location_ref = ft.Ref[ft.TextField]()
-    dropoff_location_ref = ft.Ref[ft.TextField]()
-
-    # --- 2. DatePicker 事件處理 ---
-    
-    def on_arrival_date_selected(e):
-        """當「抵達日期」被選中時呼叫"""
-        selected_date = e.control.value.strftime("%Y-%m-%d") # 將日期格式化為字串
-        logger.info(f"抵達日期已選擇: {selected_date}")
-        if arrival_date_ref.current:
-            arrival_date_ref.current.value = selected_date
-            arrival_date_ref.current.update()
-        arrival_date_picker.open = False
-        app_instance.page.update()
-
-    def on_return_date_selected(e):
-        """當「返程日期」被選中時呼叫"""
-        selected_date = e.control.value.strftime("%Y-%m-%d")
-        logger.info(f"返程日期已選擇: {selected_date}")
-        if return_date_ref.current:
-            return_date_ref.current.value = selected_date
-            return_date_ref.current.update()
-        return_date_picker.open = False
-        app_instance.page.update()
-
-
-    # --- 3. 建立 DatePicker 控制項 ---
-    # 這些是隱藏的控制項，會以彈窗形式出現
-    
-    arrival_date_picker = ft.DatePicker(
-        on_change=on_arrival_date_selected,
-        first_date=datetime.datetime.now(), # 只能選今天之後的日期
-        help_text="請選擇您的抵達日期",
-    )
-    
-    return_date_picker = ft.DatePicker(
-        on_change=on_return_date_selected,
-        first_date=datetime.datetime.now(),
-        help_text="請選擇您的返程日期"
-    )
-
-    # --- 4. 將 DatePicker 加入 Page Overlay (關鍵步驟) ---
-    # 檢查是否已存在，避免重複加入
-    if arrival_date_picker not in app_instance.page.overlay:
-        app_instance.page.overlay.append(arrival_date_picker)
-    if return_date_picker not in app_instance.page.overlay:
-        app_instance.page.overlay.append(return_date_picker)
-
-    # --- 5. 觸發 DatePicker 的函式 ---
-    
-    def open_arrival_picker(e):
-        """點擊「抵達」輸入框時，開啟日曆"""
-        logger.debug("開啟抵達日期選擇器")
-        arrival_date_picker.open = True
-        app_instance.page.update()
-
-    def open_return_picker(e):
-        """點擊「返程」輸入框時，開啟日曆"""
-        logger.debug("開啟返程日期選擇器")
-        # 讓返程日期的起始日 = 抵達日期 (如果已選的話)
-        if arrival_date_picker.value:
-            return_date_picker.first_date = arrival_date_picker.value
-        return_date_picker.open = True
-        app_instance.page.update()
+    arrival_date = "2026/01/01"
+    return_date = "2026/01/10"
+    arrival_location = "桃園機場"
+    return_location = "嘉義火車站"
 
     def show_confirm_view(e):
-        """
-        建立「確認畫面」並將其顯示在主內容區域
-        (這才是您缺少的邏輯)
-        """
         logger.info("切換到「事先預約」確認畫面")
-        # 呼叫 build_previous_booking_confirm_view 來取得 UI 控制項
-        confirm_view_content = build_previous_booking_confirm_view(app_instance)
-        
-        # 將 UI 控制項放入 main_content_ref (來自 main.py)
-        if app_instance.main_content_ref.current:
-            app_instance.main_content_ref.current.content = confirm_view_content
-            # 告訴 Flet 更新這個容器
-            app_instance.main_content_ref.current.update() 
-        else:
-            logger.error("main_content_ref (主內容容器) 尚未被 Flet 綁定！")
+        # 在切換前，確保 UI 上的任何手動輸入（如果有的話）被儲存
+        # (目前都是 read_only，所以這一步是安全的)
+        app_instance.page.go("/app/user/booking_previous_confirm")
 
-    # --- 6. 建立頁面佈局 ---
-    return ft.Container(
-        content=ft.Column(
-            controls=[
-                ft.Text("事先預約", size=24, weight=ft.FontWeight.BOLD, color=COLOR_TEXT_DARK),
-                ft.Text("此為「事先預約」功能頁面，您可以點擊下方欄位來選擇日期。", color=COLOR_TEXT_DARK),
-                
-                ft.TextField(
-                    ref=arrival_date_ref,
-                    label="抵達日期",
-                    prefix_icon=ft.Icons.CALENDAR_TODAY,
-                    read_only=True,
-                    on_focus=open_arrival_picker,
-                    # color=COLOR_TEXT_DARK
+    view = ft.View(
+        route="/app/user/booking_previous",
+        padding=0,
+        controls=[
+            ft.Container(
+                content=ft.Column(
+                    controls=[
+                        ft.Text("事先預約", size=24, weight=ft.FontWeight.BOLD, color=COLOR_TEXT_DARK),
+                        ft.Text("請點擊下方欄位來選擇日期與地點。", color=COLOR_TEXT_DARK),
+                        
+                        ft.TextField(
+                            label="抵達日期",
+                            prefix_icon=ft.Icons.CALENDAR_TODAY,
+                            read_only=True,
+                            color=COLOR_TEXT_DARK,
+                            value=arrival_date,
+                        ),
+                        ft.TextField(
+                            label="抵達地點 (例如：桃園機場)",
+                            prefix_icon=ft.Icons.FLIGHT_LAND,
+                            color=COLOR_TEXT_DARK,
+                            read_only=True,
+                            value=arrival_location,
+                        ),
+                        
+                        ft.TextField(
+                            label="返程日期",
+                            prefix_icon=ft.Icons.CALENDAR_TODAY,
+                            read_only=True,
+                            color=COLOR_TEXT_DARK,
+                            value=return_date,
+                        ),
+                        ft.TextField(
+                            label="返程地點 (例如：板橋車站)",
+                            prefix_icon=ft.Icons.FLIGHT_TAKEOFF,
+                            color=COLOR_TEXT_DARK,
+                            read_only=True,
+                            value=return_location,
+                        ),
+                        
+                        ft.Divider(height=10, color=ft.Colors.TRANSPARENT),
+                        ft.ElevatedButton(
+                            text="下一步：確認預約",
+                            icon=ft.Icons.CHECK_CIRCLE_OUTLINE,
+                            height=50,
+                            width=300,
+                            bgcolor=COLOR_BRAND_YELLOW,
+                            color=COLOR_TEXT_DARK,
+                            on_click=show_confirm_view,
+                        )
+                    ],
+                    spacing=15,
+                    scroll=ft.ScrollMode.ADAPTIVE
                 ),
-                ft.TextField(
-                    ref=pickup_location_ref,
-                    label="抵達地點 (例如：桃園機場)",
-                    prefix_icon=ft.Icons.FLIGHT_LAND,
-                    color=COLOR_TEXT_DARK
-                ),
-                
-                ft.TextField(
-                    ref=return_date_ref,
-                    label="返程日期",
-                    prefix_icon=ft.Icons.CALENDAR_TODAY,
-                    read_only=True,
-                    on_focus=open_return_picker,
-                    # color=COLOR_TEXT_DARK
-                ),
-                ft.TextField(
-                    ref=dropoff_location_ref,
-                    label="返程地點 (例如：板橋車站)",
-                    prefix_icon=ft.Icons.FLIGHT_TAKEOFF,
-                    color=COLOR_TEXT_DARK
-                ),
-                
-                ft.Divider(height=10, color=ft.Colors.TRANSPARENT),
-                ft.ElevatedButton(
-                    text="確認",
-                    icon=ft.Icons.CHECK_CIRCLE,
-                    height=50,
-                    width=200,
-                    bgcolor=COLOR_BRAND_YELLOW,
-                    color=COLOR_TEXT_DARK,
-                    on_click=show_confirm_view,
-                )
-            ],
-            spacing=15,
-            scroll=ft.ScrollMode.ADAPTIVE
-        ),
-        padding=20,
-        expand=True
+                padding=20,
+                expand=True,
+                bgcolor=COLOR_BG_LIGHT_TAN
+            ),
+            build_bottom_nav_bar(app_instance, selected_index=3)
+        ]
     )
+    return view
+
 
 def build_previous_booking_confirm_view(app_instance: 'App') -> ft.Control:
     """
@@ -192,29 +123,10 @@ def build_previous_booking_confirm_view(app_instance: 'App') -> ft.Control:
     
     def handle_submit(e):
         logger.info("「送出預約」按鈕被點擊，準備重設內容到儀表板")
-        
-        # 【問題點】下面這行在路由相同時無效
-        # app_instance.page.go("/app/user") 
-        
-        # 【修正】
-        # 1. 重新建立「儀表板」的 UI 內容
-        #    (我們在檔案頂部 import 了 build_dashboard_content)
-        try:
-            dashboard_content = build_dashboard_content(app_instance)
-        except Exception as ex:
-            logger.error(f"建立儀表板內容時出錯: {ex}")
-            # 備用方案：至少清空
-            dashboard_content = ft.Text("返回儀表板時發生錯誤。", color=ft.Colors.RED)
+        app_instance.page.go("/app/user/dashboard")
 
-        # 2. 將儀表板 UI 塞回主內容容器 (main_content_ref)
-        if app_instance.main_content_ref.current:
-            app_instance.main_content_ref.current.content = dashboard_content
-            app_instance.main_content_ref.current.update()
-        else:
-            logger.error("main_content_ref 遺失，無法返回儀表板！")
-        app_instance.page.update()
 
-    return ft.Container(
+    page_content = ft.Container(
         content=ft.Column(
             controls=[
                 ft.Text("預約確認", size=24, weight=ft.FontWeight.BOLD, color=COLOR_TEXT_DARK),
@@ -257,4 +169,14 @@ def build_previous_booking_confirm_view(app_instance: 'App') -> ft.Control:
         ),
         padding=20,
         expand=True
+    )
+
+    return ft.View(
+        route="/app/user/booking_previous_confirm",
+        padding=0,
+        controls=[
+            page_content,
+            build_bottom_nav_bar(app_instance, selected_index=3)
+        ],
+        bgcolor=COLOR_BG_LIGHT_TAN
     )

@@ -10,23 +10,10 @@ from constants import *
 from config import *
 
 # --- 恢復原始的 View 匯入 ---
-from views.login.splash_view import build_splash_view
-from views.login.login_view import build_login_view
-
-from views.user.user_home_page import build_user_app_view
-from views.user.user_home_page_content import build_dashboard_content
-from views.user.user_home_page_more_content import build_more_content
-from views.user.user_booking_previous import build_previous_booking_view
-from views.user.user_supporting import build_support_content
-
-# --- Demo 流程的 View 匯入 ---
-from views.user.user_booking_instant import build_instant_booking_view
-
 from app.router import create_route_handler
 
 
 DEBUG = True
-# ... (日誌設定保持不變) ...
 if DEBUG:
     level = logging.DEBUG
     mode = "debug"
@@ -58,8 +45,19 @@ class App:
         self.captcha_text = ft.Ref[ft.Text]()
 
         # --- 即時預約 Refs (Demo 狀態) ---
+        self.current_location_ref = ft.Ref[ft.TextField]()
+        self.arrival_date_ref = ft.Ref[ft.TextField]()
+        self.return_date_ref = ft.Ref[ft.TextField]()
         self.pickup_location_ref = ft.Ref[ft.TextField]()
         self.dropoff_location_ref = ft.Ref[ft.TextField]()
+        self.prev_arrival_date_ref = ft.Ref[ft.TextField]()
+        self.prev_return_date_ref = ft.Ref[ft.TextField]()
+        self.prev_pickup_location_ref = ft.Ref[ft.TextField]()
+        self.prev_dropoff_location_ref = ft.Ref[ft.TextField]()
+        self.prev_arrival_date_val = None
+        self.prev_return_date_val = None
+        self.prev_pickup_location_val = None
+        self.prev_dropoff_location_val = None
         self.notes_ref = ft.Ref[ft.TextField]()
         self.current_search_mode = "pickup"
         self.map_ref = ft.Ref[map.Map]()
@@ -71,10 +69,6 @@ class App:
         self.scan_results = 0
         self.scan_confirmed = False
         self.driver_alert_dialog = ft.Ref[ft.AlertDialog]()
-        
-        # --- 恢復 main_content_ref ---
-        # 這是 user_home_page.py 中用於切換內容的容器
-        self.main_content_ref = ft.Ref[ft.Container]()
 
 
     def main(self, page: ft.Page):
@@ -90,33 +84,74 @@ class App:
         self.page.fonts = {
             "LXGWWenKaiTC-Regular": "fonts/LXGWWenKaiTC-Regular.ttf",
         }
-        # self.page.locale_configuration = ft.LocaleConfiguration(
-        #     supported_locales=[
-        #         ft.Locale("en", "US"),
-        #         ft.Locale("zh", "TW")
-        #     ],
-        #     current_locale=ft.Locale("en", "US")
-        # )
         self.page.theme = ft.Theme(
             font_family="LXGWWenKaiTC-Regular",
+
             color_scheme=ft.ColorScheme(
-                primary=COLOR_BRAND_YELLOW,
-                on_primary=COLOR_TEXT_DARK,
-                surface=ft.Colors.WHITE,
-                on_surface=COLOR_TEXT_DARK,
-                background=COLOR_BG_LIGHT_TAN,
-                on_background=COLOR_TEXT_DARK,
-                secondary=COLOR_BRAND_YELLOW,
-                on_secondary=COLOR_TEXT_DARK,
-                on_surface_variant=ft.Colors.GREY_600,
+                primary=ft.Colors.BLACK,                    # 登入畫面的 icon，被選中的文字
+                on_primary=ft.Colors.WHITE,
+                primary_container=ft.Colors.BLUE,
+                on_primary_container=ft.Colors.GREEN,
+                secondary_container=COLOR_BG_DARK_GOLD,        # selected_navigator_bar container
+                on_secondary_container=ft.Colors.WHITE,     # selected_navigator_bar icon
+                on_surface=ft.Colors.BLACK,                   # selected_navigator_bar的文字
+                on_surface_variant=ft.Colors.GREY_500,      # 未被選中的 TextField, navigator_bar的文字
+                surface_container_low=ft.Colors.ORANGE_300,     # 產生驗證碼bg
             ),
+            
+            # --- 其他 Theme (保持不變) ---
             date_picker_theme=ft.DatePickerTheme(
-                bgcolor=ft.Colors.WHITE,
+                bgcolor=ft.Colors.WHITE,                    # DatePicker 彈窗是 "Surface" (白色)
+                range_picker_bgcolor=ft.Colors.PINK,       # RangePicker 彈窗是 "Surface" (白色)
+                header_bgcolor=COLOR_BG_LIGHT_TAN,
                 locale=ft.Locale("zh", "TW")
             ),
-            icon_theme=ft.IconTheme(
-                color=COLOR_ICON_WHITE
-            ),
+
+            # color_scheme=ft.ColorScheme(
+            #     # --- 主要 (Primary) 色系 ---
+            #     primary=ft.Colors.BLACK,                    # 登入畫面的 icon，被選中的文字
+            #     on_primary=ft.Colors.BLACK,                   # (2) 在「主要顏色」上的文字/圖示
+            #     primary_container=ft.Colors.BLACK,          # (3) "次要" 的主要顏色容器 (例如 FAB)
+            #     on_primary_container=ft.Colors.BLACK,       # (4) 在 "Primary Container" 上的文字/圖示
+
+            #     # --- 次要 (Secondary) 色系 ---
+            #     secondary=ft.Colors.GREEN,                  # (5) 次要顏色 (例如選中的 FilterChip)
+            #     on_secondary=ft.Colors.GREEN,                 # (6) 在「次要顏色」上的文字/圖示
+            #     secondary_container=ft.Colors.GREEN,            # selected_navigator_bar container
+            #     on_secondary_container=ft.Colors.GREEN,         # selected_navigator_bar icon
+
+            #     # --- 第三 (Tertiary) 色系 ---
+            #     tertiary=ft.Colors.BLUE,                    # (9) 第三顏色
+            #     on_tertiary=ft.Colors.BLUE,                  # (10) 在「第三顏色」上的文字/圖示
+            #     tertiary_container=ft.Colors.BLUE,          # (11)
+            #     on_tertiary_container=ft.Colors.BLUE,     # (12)
+
+            #     # --- 錯誤 (Error) 色系 ---
+            #     error=ft.Colors.ORANGE,                # (13) 錯誤顏色
+            #     on_error=ft.Colors.ORANGE,                     # (14) 在「錯誤顏色」上的文字/圖示
+            #     error_container=ft.Colors.ORANGE,      # (15)
+            #     on_error_container=ft.Colors.ORANGE, # (16)
+
+            #     # --- 背景 (Background) ---
+            #     background=ft.Colors.PURPLE,                # (17) 【Page 背景】(App 最底層)
+            #     on_background=ft.Colors.PURPLE,             # (18) 在 "Background" 上的文字/圖示
+
+            #     # --- 表面 (Surface) ---
+            #     on_surface=ft.Colors.RED,                   # selected_navigator_bar的文字
+
+            #     # --- 表面變體 (Surface Variant) ---
+            #     surface_variant=ft.Colors.RED,             # (21) 表面變體 (例如 TextField 邊框, Chip 背景)
+            #     on_surface_variant=ft.Colors.GREY_700,             # 未被選中的 TextField, navigator_bar的文字
+
+            #     # --- 表面容器 (Surface Container) (Material 3 核心) ---
+            #     surface_container_low=ft.Colors.YELLOW,     # 產生驗證碼bg
+            # ),
+            
+            # # --- 其他 Theme (保持不變) ---
+            # date_picker_theme=ft.DatePickerTheme(
+            #     bgcolor=ft.Colors.WHITE, # DatePicker 彈窗是 "Surface" (白色)
+            #     locale=ft.Locale("zh", "TW")
+            # ),
             data_table_theme=ft.DataTableTheme(
                 data_text_style=ft.TextStyle(
                     size=12,
@@ -131,8 +166,6 @@ class App:
 
 
     # --- 處理 (Handle) 邏輯 ---
-    
-    # === 登入邏輯 (未變) ===
     def login_view_handle_regenerate_captcha(self, e):
         
         new_code = str(random.randint(10000, 99999))
@@ -177,32 +210,23 @@ class App:
             self.search_bar_ref.current.visible = False
 
         if selected_index == 0:
-            content = build_more_content(self)
-            logger.info("切換到「更多」列表")
+            logger.info("導航到「更多」頁面")
+            self.page.go("/app/user/more")
         elif selected_index == 1:
-            # *** 修改點：導航到獨立的 Demo 頁面 ***
             logger.info("導航到「即時預約」Demo 頁面")
-            self.page.go("/app/user/booking_instant")
-            return #
+            self.page.go("/app/user/booking_instant") # 這是一個獨立的 View
         elif selected_index == 2:
-            content = build_dashboard_content(self)
-            logger.info("切換到「首頁」儀表板")
+            logger.info("導航到「首頁」儀表板")
+            self.page.go("/app/user/dashboard")
         elif selected_index == 3:
-            content = build_previous_booking_view(self)
-            logger.info("切換到「事先預約」")
+            logger.info("導航到「事先預約」頁面")
+            self.page.go("/app/user/booking_previous")
         elif selected_index == 4:
-            content = build_support_content(self)
-            logger.info("切換到「客服」")
+            logger.info("導航到「客服」頁面")
+            self.page.go("/app/user/support")
         else:
-            logger.error(f"Unknown selected index: {selected_index}")
-            return
-        
-        # 更新主內容區域
-        if self.main_content_ref.current:
-            self.main_content_ref.current.content = content
-            self.main_content_ref.current.update()
-        else:
-            logger.error("main_content_ref 尚未綁定！")
+            logger.error(f"未知的導航索引: {selected_index}")
+            self.page.go("/app/user/dashboard") # 預設返回
     
 
     # --- 以下 Demo 相關的 Handlers 保持不變 ---
@@ -238,26 +262,12 @@ class App:
         self.page.update()
 
     def handle_select_location_pickup(self, e):
-        
-        logger.info("Handling pickup location select")
-        self.current_search_mode = "pickup"
-        if self.search_bar_ref.current:
-            self.search_bar_ref.current.visible = True
-            self.search_text_ref.current.label = "搜尋上車地點..."
-            self.search_text_ref.current.value = ""
-            self.page.update()
-            self.search_text_ref.current.focus()
+        logger.info("Navigating to map selection for pickup")
+        self.page.go("/app/user/select_pickup")
 
     def handle_select_location_dropoff(self, e):
-        
-        logger.info("Handling dropoff location select")
-        self.current_search_mode = "dropoff"
-        if self.search_bar_ref.current:
-            self.search_bar_ref.current.visible = True
-            self.search_text_ref.current.label = "搜尋下車地點..."
-            self.search_text_ref.current.value = ""
-            self.page.update()
-            self.search_text_ref.current.focus()
+        logger.info("Navigating to map selection for dropoff")
+        self.page.go("/app/user/select_dropoff")
 
     def handle_search_location(self, e):
         
@@ -347,8 +357,7 @@ class App:
             ],
             actions_alignment=ft.MainAxisAlignment.END,
         )
-        self.page.dialog = success_dialog
-        success_dialog.open = True
+        self.page.open(success_dialog)
         self.page.update()
 
     def handle_show_driver_alert(self):
@@ -367,21 +376,19 @@ class App:
                 ],
                 actions_alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             )
-            self.page.dialog = self.driver_alert_dialog.current
-        
-        self.page.dialog.open = True
+            self.page.open(self.driver_alert_dialog.current)
         self.page.update()
 
     def handle_driver_reject(self, e):
         
         logger.info("Driver rejected order")
-        self.page.dialog.open = False
+        self.page.close(self.driver_alert_dialog.current)
         self.page.update()
 
     def handle_driver_accept(self, e):
         
         logger.info("Driver accepted order")
-        self.page.dialog.open = False
+        self.page.close(self.driver_alert_dialog.current)
         self.page.update()
         self.page.go("/app/driver/tracking")
         
@@ -435,14 +442,6 @@ class App:
 
 
     # --- App View Builders ---
-    
-    def build_user_app_view(self):
-        """
-        建立使用者 App 主畫面 (外殼)
-        """
-        # *** 修改點：呼叫 user_home_page.py 的 builder ***
-        return build_user_app_view(self)
-
     def build_hotel_app_view(self):
         # ... (旅館介面 - 未變) ...
         email = self.page.session.get("email")

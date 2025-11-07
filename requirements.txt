@@ -10,3 +10,4 @@ flet
 flet-map
 flet-geolocator
 pyinstaller
+geopy

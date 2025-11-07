@@ -17,6 +17,14 @@ logger = logging.getLogger(__name__)
 
 DEMO_DB_PATH = "demo_db.json"
 
+def load_partner_hotels_from_db():
+    try:
+        with open(DEMO_DB_PATH, 'r', encoding='utf-8') as f:
+            db_date = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return
+    hotels = db_date.get('partner_hotels', [])
+    return hotels
 
 # Helper function to save order to demo_db.json
 def save_order_to_db(order_data: dict):
@@ -85,6 +93,25 @@ def build_instant_booking_view(app_instance: 'App') -> ft.View:
     
     # 檢查 App 實例上是否已經有 map_ref，沒有才建立
     logger.info("初始化地圖控制項")
+
+    hotels_detail = load_partner_hotels_from_db()
+    hotel_markers = []
+    for hotel in hotels_detail:
+        if hotel.get("is_partner", False):
+            icon = ft.Icon(ft.Icons.HOTEL, color=ft.Colors.BLUE_600, size=25)
+        else:
+            icon = ft.Icon(ft.Icons.HOTEL, color=ft.Colors.GREY_400, size=25)
+        marker = map.Marker(
+            content=icon,
+            coordinates=map.MapLatitudeLongitude(hotel["lat"], hotel["lon"]),
+        )
+        hotel_markers.append(marker)
+    all_markers = hotel_markers
+    all_markers.append(map.Marker(
+                        content=ft.Icon(ft.Icons.LOCATION_ON, color=ft.Colors.RED, size=35),
+                        coordinates=map.MapLatitudeLongitude(*USER_DASHBOARD_DEFAULT_LOCATION),
+                    ))
+
     app_instance.map_ref.current = map.Map(
         expand=True,
         initial_zoom=16,
@@ -97,12 +124,7 @@ def build_instant_booking_view(app_instance: 'App') -> ft.View:
                 url_template=USER_DASHBOARD_MAP_TEMPLATE,
             ),
             map.MarkerLayer(
-                markers=[
-                    map.Marker(
-                        content=ft.Icon(ft.Icons.LOCATION_ON, color=ft.Colors.RED, size=35),
-                        coordinates=map.MapLatitudeLongitude(*USER_DASHBOARD_DEFAULT_LOCATION),
-                    ),
-                ],
+                markers=all_markers,
             ),
         ],
     )
@@ -260,7 +282,7 @@ def build_instant_booking_confirm_view(app_instance: 'App') -> ft.View:
         }
 
         save_order_to_db(new_order)
-
+        app_instance.scan_results = 0
         app_instance.page.go("/app/user")
 
     pickup_name = "板橋車站"
@@ -294,11 +316,6 @@ def build_instant_booking_confirm_view(app_instance: 'App') -> ft.View:
                     ),
                 ]
             ),
-            # Extract route coordinates from MAP_ROUTING_RESULT and convert to [lat, lon]
-            # route_coordinates = [
-            #     map.MapLatitudeLongitude(coord[1], coord[0]) 
-            #     for coord in MAP_ROUTING_RESULT["routes"][0]["geometry"]["coordinates"]
-            # ]
             map.PolylineLayer(
                 polylines=[
                     map.PolylineMarker(
@@ -310,6 +327,12 @@ def build_instant_booking_confirm_view(app_instance: 'App') -> ft.View:
             )
         ]
     )
+
+    if app_instance.notes_ref.current and app_instance.notes_ref.current.value != "":
+        note = ft.Text(f"\n註記： {app_instance.notes_ref.current.value}", color=ft.Colors.RED)
+    else:
+        note = ft.Text("")
+
 
     info_card = ft.Container(
         padding=30,
@@ -324,6 +347,7 @@ def build_instant_booking_confirm_view(app_instance: 'App') -> ft.View:
                 ft.Text("        推薦車款為: 休旅車", color=COLOR_TEXT_DARK),
                 ft.Text("        預計費用為: 250 元", color=COLOR_TEXT_DARK),
                 ft.Text("預計行李抵達旅館時間: 50 分鐘", color=COLOR_TEXT_DARK),
+                note,
                 ft.Divider(height=1, color=ft.Colors.TRANSPARENT),
                 ft.Row(
                     controls=[
