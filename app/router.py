@@ -4,6 +4,11 @@ from typing import TYPE_CHECKING
 # --- View 匯入 ---
 from views.login.splash_view import build_splash_view
 from views.login.login_view import build_login_view
+from views.login.splash_view_to_user import build_splash_to_user_view
+from views.login.splash_view_to_user2 import build_splash_to_user_view2
+from views.login.splash_view_to_driver import build_splash_to_driver_view
+from views.login.splash_view_to_hotel import build_splash_to_hotel_view
+
 from views.user.user_home_page_content import build_dashboard_view
 from views.user.user_home_page_more_content import build_more_view
 from views.user.user_booking_instant import build_instant_booking_view, build_instant_booking_confirm_view
@@ -13,8 +18,11 @@ from views.user.map_view import build_map_view
 from views.user.user_history import history_view
 
 # --- 從 app/ 子模組匯入 ---
+from app.user import build_user_tracking_view
 from app.scan import build_scan_view, build_scan_results_view
-from app.driver import build_driver_home_view, build_driver_tracking_view
+from app.driver import build_driver_home_view, build_driver_tracking_view, build_scan_view as build_driver_scan_view, build_scan_results_view as build_driver_scan_results_view
+from app.hotel import build_hotel_view, build_scan_view as build_hotel_scan_view, build_scan_results_view as build_hotel_scan_results_view
+
 
 if TYPE_CHECKING:
     from main import App
@@ -40,7 +48,15 @@ def create_route_handler(app_instance: 'App'):
         # --- 路由 1: 啟動畫面 ---
         if page.route == "/splash":
             page.views.append(build_splash_view(app_instance))
-
+        elif page.route == "/splash/user":
+            page.views.append(build_splash_to_user_view(app_instance))
+        elif page.route == "/splash/user2":
+            page.views.append(build_splash_to_user_view2(app_instance))
+        elif page.route == "/splash/dirver":
+            page.views.append(build_splash_to_driver_view(app_instance))
+        elif page.route == "/splash/hotel":
+            page.views.append(build_splash_to_hotel_view(app_instance))
+        
         # --- 路由 2: 登入表單 ---
         elif page.route.startswith("/login/"):
             role_key = page.route.split("/")[-1]
@@ -71,6 +87,9 @@ def create_route_handler(app_instance: 'App'):
             page.views.append(history_view(app_instance.page))
         elif page.route == "/app/user/map":
             page.views.append(build_map_view(app_instance))
+        elif page.route == "/app/user/current_order":
+            page.views.append(build_user_tracking_view(app_instance))
+            app_instance.start_user_animation()
             
         # --- 司機流程 ---
         elif page.route == "/app/driver":
@@ -79,10 +98,19 @@ def create_route_handler(app_instance: 'App'):
         elif page.route == "/app/driver/tracking":
             page.views.append(build_driver_tracking_view(app_instance))
             app_instance.start_driver_animation()
+        elif page.route == "/app/driver/scan":
+            page.views.append(build_driver_scan_view(app_instance))
+        elif page.route == "/app/driver/scan_results":
+            page.views.append(build_driver_scan_results_view(app_instance))
+
 
         # --- 旅館流程 ---
-        # elif role == "hotel":
-        #     page.views.append(app_instance.build_hotel_app_view())
+        elif page.route == "/app/hotel":
+            page.views.append(build_hotel_view(app_instance))
+        elif page.route == "/app/hotel/scan":
+            page.views.append(build_hotel_scan_view(app_instance))
+        elif page.route == "/app/hotel/scan_results":
+            page.views.append(build_hotel_scan_results_view(app_instance))
         
         # --- 預設 (未登入) ---
         else:

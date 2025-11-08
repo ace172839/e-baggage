@@ -3,7 +3,7 @@ import flet_map as map
 from views.user.user_home_page_content import build_dashboard_content
 from config import *
 from constants import *
-from config import MAP_ROUTING_RESULT
+from config import MAP_ROUTING_101_BANQIAO
 from typing import TYPE_CHECKING
 import logging
 import json
@@ -283,12 +283,12 @@ def build_instant_booking_confirm_view(app_instance: 'App') -> ft.View:
 
         save_order_to_db(new_order)
         app_instance.scan_results = 0
-        app_instance.page.go("/app/user")
+        app_instance.page.go("/splash/dirver")
 
-    pickup_name = "板橋車站"
-    pickup_coords = LOCATION_BANQIAO_STATION
-    dropoff_name = "台北 101"
-    dropoff_coords = LOCATION_TAIPEI_101
+    pickup_name = "台北101"
+    pickup_coords = LOCATION_TAIPEI_101
+    dropoff_name = "板橋車站"
+    dropoff_coords = LOCATION_BANQIAO_STATION
     
     calculated_zoom = calculate_zoom_level(
         pickup_coords[0], pickup_coords[1],
@@ -319,7 +319,7 @@ def build_instant_booking_confirm_view(app_instance: 'App') -> ft.View:
             map.PolylineLayer(
                 polylines=[
                     map.PolylineMarker(
-                        coordinates=[map.MapLatitudeLongitude(coord[1], coord[0]) for coord in MAP_ROUTING_RESULT["routes"][0]["geometry"]["coordinates"]],
+                        coordinates=[map.MapLatitudeLongitude(coord[1], coord[0]) for coord in MAP_ROUTING_101_BANQIAO["routes"][0]["geometry"]["coordinates"]],
                         color=ft.Colors.BLACK38,
                         stroke_width=5
                     )

@@ -4,6 +4,7 @@ import flet_map as map
 import logging
 import random
 import time
+import json
 import threading
 
 from constants import *
@@ -323,6 +324,42 @@ class App:
 
         threading.Timer(2.0, go_to_results).start()
 
+    def handle_hotel_scan_start(self, e):
+        
+        logger.info("Starting scan...")
+        
+        if self.page.views:
+            for ctrl in self.page.views[-1].controls:
+                if isinstance(ctrl, ft.Stack):
+                    for stack_item in ctrl.controls:
+                        if isinstance(stack_item, ft.ProgressRing):
+                            stack_item.visible = True
+                            break
+            self.page.update()
+
+        def go_to_results():
+            self.page.go("/app/hotel/scan_results")
+
+        threading.Timer(2.0, go_to_results).start()
+
+    def handle_driver_scan_start(self, e):
+        
+        logger.info("Starting scan...")
+        
+        if self.page.views:
+            for ctrl in self.page.views[-1].controls:
+                if isinstance(ctrl, ft.Stack):
+                    for stack_item in ctrl.controls:
+                        if isinstance(stack_item, ft.ProgressRing):
+                            stack_item.visible = True
+                            break
+            self.page.update()
+
+        def go_to_results():
+            self.page.go("/app/driver/scan_results")
+
+        threading.Timer(2.0, go_to_results).start()
+
     def handle_scan_reject(self, e):
         
         logger.info("Scan rejected, going back")
@@ -361,23 +398,25 @@ class App:
         self.page.update()
 
     def handle_show_driver_alert(self):
-        
+        def new_order_to_driver():
+            if not self.driver_alert_dialog.current:
+                self.driver_alert_dialog.current = ft.AlertDialog(
+                    ref=self.driver_alert_dialog,
+                    modal=True,
+                    title=ft.Text("新的行李預約"),
+                    content=ft.Text("您有新的行李預約，車資分潤為200元，預估行車時間 50 分鐘"),
+                    actions=[
+                        ft.TextButton("取消", on_click=self.handle_driver_reject, style=ft.ButtonStyle(color=ft.Colors.RED)),
+                        ft.TextButton("接單", on_click=self.handle_driver_accept, style=ft.ButtonStyle(color=ft.Colors.GREEN)),
+                    ],
+                    actions_alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                )
+                self.page.open(self.driver_alert_dialog.current)
+            self.page.update()
         logger.info("Showing driver alert")
-        
-        if not self.driver_alert_dialog.current:
-            self.driver_alert_dialog.current = ft.AlertDialog(
-                ref=self.driver_alert_dialog,
-                modal=True,
-                title=ft.Text("新的行李預約"),
-                content=ft.Text("您有新的行李預約，車資分潤為100元，預估行車時間 50 分鐘"),
-                actions=[
-                    ft.TextButton("取消", on_click=self.handle_driver_reject, style=ft.ButtonStyle(color=ft.Colors.RED)),
-                    ft.TextButton("接單", on_click=self.handle_driver_accept, style=ft.ButtonStyle(color=ft.Colors.GREEN)),
-                ],
-                actions_alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-            )
-            self.page.open(self.driver_alert_dialog.current)
-        self.page.update()
+        # 啟動一個 2.5 秒的非阻塞計時器
+        timer = threading.Timer(2, new_order_to_driver)
+        timer.start()
 
     def handle_driver_reject(self, e):
         
@@ -394,52 +433,207 @@ class App:
         
     def start_driver_animation(self):
         
-        logger.info("Starting driver tracking animation")
-        
-        if not self.driver_marker_ref.current or not self.map_ref.current:
-            logger.error("Driver marker or map not ready for animation")
-            return
+        logger.info("Scheduling driver tracking animation")
 
-        start_lat, start_lon = LOCATION_TAIPEI_CITY_HALL
-        end_lat, end_lon = LOCATION_TAIPEI_101
-        steps = 5
-        
-        def animate_step(i):
-            if i > steps:
-                logger.info("Animation finished")
-                if self.map_ref.current:
-                    self.map_ref.current.center = map.MapLatitudeLongitude(*LOCATION_TAIPEI_101)
-                    self.map_ref.current.zoom = 14
-                if self.polyline_layer_ref.current:
-                    self.polyline_layer_ref.current.polylines = [
-                        map.PolylineMarker(
-                            coordinates=[
-                                map.MapLatitudeLongitude(*LOCATION_TAIPEI_101),
-                                map.MapLatitudeLongitude(*LOCATION_BANQIAO_STATION),
-                            ],
-                            color=ft.Colors.BLUE,
-                            border_stroke_width=5
-                        )
-                    ]
-                if self.driver_marker_ref.current:
-                    self.driver_marker_ref.current.coordinates = map.MapLatitudeLongitude(*LOCATION_TAIPEI_101)
-                self.page.update()
+        def animation_logic():
+            logger.info("Starting driver tracking animation after delay")
+            
+            if not self.driver_marker_ref.current or not self.map_ref.current:
+                logger.error("Driver marker or map not ready for animation after delay.")
                 return
 
-            t = i / steps
-            current_lat = start_lat + (end_lat - start_lat) * t
-            current_lon = start_lon + (end_lon - start_lon) * t
+            # --- 新的路徑資料 ---
+            path_data = MAP_ROUTING_CITYHALL_101["routes"][0]["geometry"]["coordinates"]
+            # path_data = json.loads(path_json_string)
             
-            logger.debug(f"Animation step {i}: Lat={current_lat}, Lon={current_lon}")
+            # Flet Map 使用 [latitude, longitude]，但 GeoJSON 是 [longitude, latitude]
+            # 我們需要轉換它
+            animation_points = [[lat, lon] for lon, lat in path_data]
             
-            if self.driver_marker_ref.current:
-                self.driver_marker_ref.current.coordinates = map.MapLatitudeLongitude(current_lat, current_lon)
-                self.page.update()
+            if not animation_points:
+                logger.error("No coordinates found in path data")
+                return
 
-            threading.Timer(1.0, lambda: animate_step(i + 1)).start()
+            num_points = len(animation_points)
+            total_duration_sec = 8.0
+            # 計算每個點之間的延遲時間
+            time_per_step = total_duration_sec / num_points
+            
+            # 動畫的最終點
+            final_lat_lon = animation_points[-1]
+            final_map_coords = map.MapLatitudeLongitude(*final_lat_lon)
 
-        animate_step(1)
+            def animate_step(i):
+                if i >= num_points:
+                    # --- 動畫結束 ---
+                    logger.info("Animation finished")
+                    
+                    if self.map_ref.current:
+                        # 將地圖中心設置為動畫的確切終點
+                        self.map_ref.current.center = final_map_coords
+                        self.map_ref.current.zoom = 16 # 您可以調整縮放等級
+                    
+                    if self.polyline_layer_ref.current:
+                        # 更新路線，從動畫終點 (台北 101 附近) 到板橋
+                        self.polyline_layer_ref.current.polylines = [
+                            map.PolylineMarker(
+                                coordinates=[
+                                    final_map_coords,
+                                    map.MapLatitudeLongitude(*LOCATION_BANQIAO_STATION), # 假設 LOCATION_BANQIAO_STATION 已定義
+                                ],
+                                color=ft.Colors.BLUE,
+                                border_stroke_width=5
+                            )
+                        ]
+                        
+                    if self.driver_marker_ref.current:
+                        # 確保標記停在最終點
+                        self.driver_marker_ref.current.coordinates = final_map_coords
+                        self.page.go("/app/driver/scan")
+                        
+                    self.page.update()
+                    return
+                
+                # --- 動畫執行中 ---
+                current_lat, current_lon = animation_points[i]
+                
+                logger.debug(f"Animation step {i}: Lat={current_lat}, Lon={current_lon}")
+                
+                if self.driver_marker_ref.current:
+                    # 更新標記到當前路徑點
+                    self.driver_marker_ref.current.coordinates = map.MapLatitudeLongitude(current_lat, current_lon)
+                    self.page.update()
 
+                # 安排下一步
+                threading.Timer(time_per_step, lambda: animate_step(i + 1)).start()
+
+            # 從第一個點開始動畫 (index 0)
+            animate_step(0)
+
+        # Delay the animation start to allow the view to build and refs to update
+        threading.Timer(0.5, animation_logic).start()
+
+    def _force_stop_animation_and_redirect(self):
+        """
+        由 10 秒計時器觸發，強制停止動畫並導航。
+        """
+        if self.animation_running:
+            logger.info("10-second timer fired. Stopping animation early.")
+            self.animation_running = False # 發送停止訊號
+            
+            # 導航到 /app/hotel
+            self.page.go("/app/hotel")
+            # 確保頁面更新
+            self.page.update()
+
+    # --- 修改後的 start_user_animation ---
+    def start_user_animation(self):
+        
+        logger.info("Scheduling driver tracking animation")
+
+        # 確保動畫控制變數已在 class 中定義 (或在這裡設置)
+        self.animation_running = False
+
+        def animation_logic():
+            logger.info("Starting driver tracking animation after delay")
+            
+            # --- 設定控制旗標 ---
+            self.animation_running = True # 允許動畫開始
+            
+            if not self.driver_marker_ref.current or not self.map_ref.current:
+                logger.error("Driver marker or map not ready for animation after delay.")
+                self.animation_running = False
+                return
+
+            # --- 啟動 10 秒計時器 ---
+            # 這個計時器將在 10 秒後呼叫停止函式
+            threading.Timer(10.0, self._force_stop_animation_and_redirect).start()
+            # --------------------------
+
+            # --- 新的路徑資料 ---
+            try:
+                path_data = MAP_ROUTING_101_BANQIAO["routes"][0]["geometry"]["coordinates"]
+            except Exception as e:
+                logger.error(f"Failed to get path data: {e}")
+                self.animation_running = False
+                return
+                
+            # Flet Map 使用 [latitude, longitude]，但 GeoJSON 是 [longitude, latitude]
+            # 我們需要轉換它
+            animation_points = [[lat, lon] for lon, lat in path_data]
+            
+            if not animation_points:
+                logger.error("No coordinates found in path data")
+                self.animation_running = False
+                return
+
+            num_points = len(animation_points)
+            total_duration_sec = 100.0 # 動畫總時長 (會被 10 秒計時器中斷)
+            # 計算每個點之間的延遲時間
+            time_per_step = total_duration_sec / num_points
+            
+            # 動畫的最終點
+            final_lat_lon = animation_points[-1]
+            final_map_coords = map.MapLatitudeLongitude(*final_lat_lon)
+
+            def animate_step(i):
+                
+                # --- 檢查動畫是否已被外部停止 ---
+                if not self.animation_running:
+                    logger.debug(f"Animation stopped externally at step {i}.")
+                    return
+                # ------------------------------------
+
+                if i >= num_points:
+                    # --- 動畫正常結束 (100秒後) ---
+                    logger.info("Animation finished normally (100s complete)")
+                    
+                    self.animation_running = False # 標記為已完成
+                    
+                    if self.map_ref.current:
+                        # 將地圖中心設置為動畫的確切終點
+                        self.map_ref.current.center = final_map_coords
+                        self.map_ref.current.zoom = 14 # 您可以調整縮放等級
+                    
+                    if self.polyline_layer_ref.current:
+                        # 更新路線
+                        self.polyline_layer_ref.current.polylines = [
+                            map.PolylineMarker(
+                                coordinates=[
+                                    final_map_coords,
+                                    map.MapLatitudeLongitude(*LOCATION_BANQIAO_STATION), # 假設 LOCATION_BANQIAO_STATION 已定義
+                                ],
+                                color=ft.Colors.BLUE,
+                                border_stroke_width=5
+                            )
+                        ]
+                        
+                    if self.driver_marker_ref.current:
+                        # 確保標記停在最終點
+                        self.driver_marker_ref.current.coordinates = final_map_coords
+                        
+                    self.page.update()
+                    return
+                
+                # --- 動畫執行中 ---
+                current_lat, current_lon = animation_points[i]
+                
+                logger.debug(f"Animation step {i}: Lat={current_lat}, Lon={current_lon}")
+                
+                if self.driver_marker_ref.current:
+                    # 更新標記到當前路徑點
+                    self.driver_marker_ref.current.coordinates = map.MapLatitudeLongitude(current_lat, current_lon)
+                    self.page.update()
+
+                # 安排下一步
+                if self.animation_running: # 再次檢查，避免在安排下一步時被停止
+                    threading.Timer(time_per_step, lambda: animate_step(i + 1)).start()
+
+            # 從第一個點開始動畫 (index 0)
+            animate_step(0)
+
+        # Delay the animation start to allow the view to build and refs to update
+        threading.Timer(0.5, animation_logic).start()
 
     # --- App View Builders ---
     def build_hotel_app_view(self):

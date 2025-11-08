@@ -3,8 +3,8 @@ import flet as ft
 import flet_map as map
 from typing import TYPE_CHECKING
 
-from config import LOCATION_BANQIAO_STATION, LOCATION_TAIPEI_101, LOCATION_TAIPEI_CITY_HALL, USER_DASHBOARD_MAP_TEMPLATE
-from config import WINDOW_HEIGHT, WINDOW_WIDTH
+from config import LOCATION_BANQIAO_STATION, LOCATION_TAIPEI_101, LOCATION_TAIPEI_CITY_HALL, USER_DASHBOARD_MAP_TEMPLATE, MAP_ROUTING_CITYHALL_101
+from config import WINDOW_HEIGHT, WINDOW_WIDTH, SCAN_RESULT_LSIT
 from constants import *
 
 if TYPE_CHECKING:
@@ -21,7 +21,7 @@ def build_driver_home_view(app_instance: 'App') -> ft.View:
     driver_map = map.Map(
         ref=app_instance.map_ref,
         expand=True,
-        initial_zoom=15,
+        initial_zoom=16,
         initial_center=map.MapLatitudeLongitude(*driver_coords),
         layers=[
             map.TileLayer(url_template=USER_DASHBOARD_MAP_TEMPLATE),
@@ -45,7 +45,7 @@ def build_driver_home_view(app_instance: 'App') -> ft.View:
     button_bar = ft.Container(
         height=WINDOW_HEIGHT / 4,
         padding=20,
-        bgcolor=COLOR_BG_LIGHT_TAN,
+        bgcolor=ft.Colors.GREY_600,
         content=ft.Row(
             controls=[
                 ft.ElevatedButton("更多", icon=ft.Icons.MENU, height=60, expand=True),
@@ -77,11 +77,6 @@ def build_driver_tracking_view(app_instance: 'App') -> ft.View:
     
     driver_coords = LOCATION_TAIPEI_CITY_HALL
     pickup_coords = LOCATION_TAIPEI_101
-    dropoff_coords = LOCATION_BANQIAO_STATION
-    
-    if app_instance.map_ref.current:
-        app_instance.map_ref.current.center = map.MapLatitudeLongitude(*driver_coords)
-        app_instance.map_ref.current.zoom = 14
     
     driver_marker = map.Marker(
         ref=app_instance.driver_marker_ref,
@@ -93,19 +88,33 @@ def build_driver_tracking_view(app_instance: 'App') -> ft.View:
         coordinates=map.MapLatitudeLongitude(*pickup_coords),
     )
     
-    if app_instance.marker_layer_ref.current:
-        app_instance.marker_layer_ref.current.markers = [driver_marker, pickup_marker]
+    marker_layer = map.MarkerLayer(
+        ref=app_instance.marker_layer_ref,
+        markers=[driver_marker, pickup_marker]
+    )
         
     route_to_pickup = map.PolylineMarker(
-        coordinates=[
-            map.MapLatitudeLongitude(*driver_coords),
-            map.MapLatitudeLongitude(*pickup_coords),
-        ],
+        coordinates=[map.MapLatitudeLongitude(coord[1], coord[0]) for coord in MAP_ROUTING_CITYHALL_101["routes"][0]["geometry"]["coordinates"]],
         color=ft.Colors.GREEN_700,
         border_stroke_width=5
     )
-    if app_instance.polyline_layer_ref.current:
-        app_instance.polyline_layer_ref.current.polylines = [route_to_pickup]
+
+    polyline_layer = map.PolylineLayer(
+        ref=app_instance.polyline_layer_ref,
+        polylines=[route_to_pickup]
+    )
+
+    tracking_map = map.Map(
+        ref=app_instance.map_ref,
+        expand=True,
+        initial_zoom=16,
+        initial_center=map.MapLatitudeLongitude(*driver_coords),
+        layers=[
+            map.TileLayer(url_template=USER_DASHBOARD_MAP_TEMPLATE),
+            marker_layer,
+            polyline_layer
+        ]
+    )
 
     info_panel = ft.Container(
         height=WINDOW_HEIGHT / 3,
@@ -113,10 +122,10 @@ def build_driver_tracking_view(app_instance: 'App') -> ft.View:
         bgcolor=COLOR_BG_LIGHT_TAN,
         content=ft.Column(
             controls=[
-                ft.Text("當前動態", size=20, weight=ft.FontWeight.BOLD),
-                ft.Text("司機名稱：王小明"),
-                ft.Text("司機車牌：ABC-6666"),
-                ft.Text("司機電話：0912345678"),
+                ft.Text("當前動態", size=20, weight=ft.FontWeight.BOLD, color=ft.Colors.BLACK),
+                ft.Text("司機名稱：王小明", color=ft.Colors.BLACK),
+                ft.Text("司機車牌：ABC-6666", color=ft.Colors.BLACK),
+                ft.Text("司機電話：0912345678", color=ft.Colors.BLACK),
                 ft.TextField(
                     label="傳送訊息...",
                     prefix_icon=ft.Icons.CHAT,
@@ -131,12 +140,136 @@ def build_driver_tracking_view(app_instance: 'App') -> ft.View:
     return ft.View(
         route="/app/driver/tracking",
         padding=0,
-        appbar=ft.AppBar(title=ft.Text("前往乘客地點")),
+        appbar=ft.AppBar(title=ft.Text("前往乘客地點"), bgcolor=ft.Colors.AMBER),
         controls=[
             ft.Column(
                 controls=[
-                    ft.Container(content=app_instance.map_ref.current, expand=True),
+                    ft.Container(content=tracking_map, expand=True),
                     info_panel
+                ],
+                expand=True,
+                spacing=0
+            )
+        ]
+    )
+
+def build_scan_view(app_instance: 'App') -> ft.View:
+    
+    logger.info("Building Scan View")
+    
+    return ft.View(
+        route="/app/driver/scan",
+        bgcolor=ft.Colors.BLACK,
+        appbar=ft.AppBar(
+            title=ft.Text("掃描行李", color=ft.Colors.WHITE), 
+            bgcolor=ft.Colors.BLACK, 
+            leading=ft.IconButton(
+                icon=ft.Icons.ARROW_BACK, 
+                on_click=lambda _: app_instance.page.go("/app/driver"), 
+                icon_color=ft.Colors.WHITE
+            )
+        ),
+        controls=[
+            ft.Stack(
+                controls=[
+                    ft.Image(
+                        src=f"images/baggages.jpg", 
+                        fit=ft.ImageFit.COVER,
+                        width=WINDOW_WIDTH,
+                        opacity=0.7
+                    ),
+                    ft.Container(
+                        border=ft.border.all(4, ft.Colors.GREEN_ACCENT),
+                        border_radius=10,
+                        width=300,
+                        height=300,
+                        alignment=ft.alignment.center,
+                    ),
+                    ft.Container(
+                        content=ft.ElevatedButton(
+                            text="掃描行李",
+                            icon=ft.Icons.CAMERA,
+                            height=60,
+                            on_click=app_instance.handle_driver_scan_start,
+                            color=ft.Colors.WHITE,
+                            bgcolor=ft.Colors.GREEN,
+                        ),
+                        alignment=ft.alignment.bottom_center,
+                        padding=50
+                    ),
+                    ft.ProgressRing(width=64, height=64, stroke_width=8, visible=False)
+                ],
+                alignment=ft.alignment.center,
+                expand=True
+            )
+        ]
+    )
+
+def build_scan_results_view(app_instance: 'App') -> ft.View:
+    
+    logger.info("Building Scan Results View")
+    scan_result_text = ""
+    for baggage in SCAN_RESULT_LSIT:
+        scan_result_text += f"{baggage['size']}吋{baggage['color']}{baggage['type']} {baggage['quantity']} 件\n"
+    app_instance.scan_results = len(SCAN_RESULT_LSIT)
+    
+    return ft.View(
+        route="/app/driver/scan_results",
+        bgcolor=ft.Colors.BLACK,
+        appbar=ft.AppBar(
+            title=ft.Text("掃描結果", color=ft.Colors.WHITE), 
+            bgcolor=ft.Colors.BLACK
+        ),
+        controls=[
+            ft.Column(
+                controls=[
+                    ft.Container(
+                        content=ft.Image(
+                            src=f"images/baggages.jpg", 
+                            fit=ft.ImageFit.CONTAIN,
+                            width=WINDOW_WIDTH,
+                            height=WINDOW_HEIGHT * 0.6,
+                            opacity=0.5
+                        ),
+                        expand=2
+                    ),
+                    ft.Container(
+                        padding=10,
+                        bgcolor=COLOR_BG_LIGHT_TAN,
+                        border_radius=ft.BorderRadius(top_left=10, top_right=10, bottom_left=10, bottom_right=10),
+                        content=ft.Column(
+                            controls=[
+                                ft.Text("掃描結果", size=20, weight=ft.FontWeight.BOLD, color=COLOR_TEXT_DARK),
+                                ft.Text(scan_result_text, size=14, color=ft.Colors.GREY_800),
+                                ft.Text("已將照片上傳至雲端保存，下車時旅館端會再次核實", size=16, color=COLOR_TEXT_DARK),
+                                ft.Divider(height=10, color=ft.Colors.TRANSPARENT),
+                                ft.Row(
+                                    controls=[
+                                        ft.ElevatedButton(
+                                            text="返回",
+                                            icon=ft.Icons.CANCEL,
+                                            height=50,
+                                            bgcolor=ft.Colors.RED_100,
+                                            color=ft.Colors.RED_800,
+                                            on_click=lambda _: app_instance.page.go("/app/driver"),
+                                            expand=True,
+                                        ),
+                                        ft.ElevatedButton(
+                                            text="啟程",
+                                            icon=ft.Icons.CHECK_CIRCLE,
+                                            height=50,
+                                            bgcolor=ft.Colors.GREEN_100,
+                                            color=ft.Colors.GREEN_800,
+                                            on_click=lambda _: app_instance.page.go("/splash/user"),
+                                            expand=True,
+                                        )
+                                    ]
+                                )
+                            ],
+                            scroll=ft.ScrollMode.ADAPTIVE
+                        ),
+                        expand=3
+                    )
                 ],
                 expand=True,
                 spacing=0
