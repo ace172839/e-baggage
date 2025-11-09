@@ -379,7 +379,7 @@ def build_instant_booking_confirm_view(app_instance: 'App') -> ft.View:
         padding=0,
         floating_action_button=build_ai_fab(app_instance),
         appbar=ft.AppBar(
-            title=ft.Text("確認您的行程"),
+            title=ft.Text("確認您的行程", color=COLOR_TEXT_DARK),
             bgcolor=COLOR_BRAND_YELLOW,
             leading=ft.IconButton(icon=ft.Icons.ARROW_BACK, on_click=lambda _: app_instance.page.page.go("/app/user/booking_instant")),
         ),

@@ -43,13 +43,8 @@ def build_hotel_view(app_instance: 'App') -> ft.View:
         route="/app/user/hotel",
         bgcolor=ft.Colors.BLACK,
         appbar=ft.AppBar(
-            title=ft.Text("托李福酒店", color=ft.Colors.BLACK), 
-            bgcolor=ft.Colors.INDIGO, 
-            leading=ft.IconButton(
-                icon=ft.Icons.ARROW_BACK, 
-                on_click=lambda _: app_instance.page.go("/app/user"),
-                icon_color=ft.Colors.WHITE
-            )
+            title=ft.Text("圓山大飯店", color=ft.Colors.BLACK), 
+            bgcolor=COLOR_BRAND_YELLOW, 
         ),
         controls=[
             ft.Image(
@@ -152,8 +147,13 @@ def build_scan_results_view(app_instance: 'App') -> ft.View:
         route="/app/hotel/scan_results",
         bgcolor=ft.Colors.BLACK,
         appbar=ft.AppBar(
-            title=ft.Text("掃描結果", color=ft.Colors.WHITE), 
-            bgcolor=ft.Colors.BLACK
+            title=ft.Text("掃描結果", color=ft.Colors.BLACK), 
+            bgcolor=COLOR_BRAND_YELLOW, 
+            leading=ft.IconButton(
+                icon=ft.Icons.ARROW_BACK, 
+                on_click=lambda _: app_instance.page.go("/app/hotel/scan"), 
+                icon_color=ft.Colors.WHITE
+            )
         ),
         controls=[
             ft.Column(

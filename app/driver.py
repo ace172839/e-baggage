@@ -43,12 +43,13 @@ def build_driver_home_view(app_instance: 'App') -> ft.View:
     )
 
     button_bar = ft.Container(
-        height=WINDOW_HEIGHT / 4,
+        height=WINDOW_HEIGHT / 6,
         padding=20,
-        bgcolor=ft.Colors.GREY_600,
+        bgcolor=COLOR_BACKGROUD_YELLOW,
         content=ft.Row(
             controls=[
                 ft.ElevatedButton("更多", icon=ft.Icons.MENU, height=60, expand=True),
+                ft.ElevatedButton("掃描", icon=ft.Icons.CAMERA, height=60, expand=True),
                 ft.ElevatedButton("導航", icon=ft.Icons.NAVIGATION, height=60, expand=True),
             ],
             alignment=ft.MainAxisAlignment.CENTER,
@@ -59,6 +60,10 @@ def build_driver_home_view(app_instance: 'App') -> ft.View:
     return ft.View(
         route="/app/driver",
         padding=0,
+        appbar=ft.AppBar(
+            title=ft.Text("王小明 司機您好", color=ft.Colors.BLACK), 
+            bgcolor=COLOR_BRAND_YELLOW, 
+        ),
         controls=[
             ft.Column(
                 controls=[
@@ -139,7 +144,15 @@ def build_driver_tracking_view_101(app_instance: 'App') -> ft.View:
     return ft.View(
         route="/app/driver/tracking_101",
         padding=0,
-        appbar=ft.AppBar(title=ft.Text("前往乘客地點"), bgcolor=ft.Colors.AMBER),
+        appbar=ft.AppBar(
+            title=ft.Text("前往旅客地點", color=ft.Colors.BLACK), 
+            bgcolor=COLOR_BRAND_YELLOW, 
+            leading=ft.IconButton(
+                icon=ft.Icons.ARROW_BACK, 
+                on_click=lambda _: app_instance.page.go("/app/driver"), 
+                icon_color=ft.Colors.WHITE
+            )
+        ),
         controls=[
             ft.Column(
                 controls=[
@@ -149,7 +162,8 @@ def build_driver_tracking_view_101(app_instance: 'App') -> ft.View:
                 expand=True,
                 spacing=0
             )
-        ]
+        ],
+        bgcolor=COLOR_BRAND_YELLOW
     )
 
 def build_driver_tracking_view_hotel(app_instance: 'App') -> ft.View:
@@ -188,7 +202,7 @@ def build_driver_tracking_view_hotel(app_instance: 'App') -> ft.View:
     tracking_map = map.Map(
         ref=app_instance.map_ref,
         expand=True,
-        initial_zoom=16,
+        initial_zoom=14,
         initial_center=map.MapLatitudeLongitude(*driver_coords),
         layers=[
             map.TileLayer(url_template=USER_DASHBOARD_MAP_TEMPLATE),
@@ -218,9 +232,17 @@ def build_driver_tracking_view_hotel(app_instance: 'App') -> ft.View:
     )
 
     return ft.View(
-        route="/app/driver/tracking_101",
+        route="/app/driver/tracking_hotel",
         padding=0,
-        appbar=ft.AppBar(title=ft.Text("前往旅館地點"), bgcolor=ft.Colors.AMBER),
+        appbar=ft.AppBar(
+            title=ft.Text("前往旅館地點", color=ft.Colors.BLACK), 
+            bgcolor=COLOR_BRAND_YELLOW, 
+            leading=ft.IconButton(
+                icon=ft.Icons.ARROW_BACK, 
+                on_click=lambda _: app_instance.page.go("/app/driver"), 
+                icon_color=ft.Colors.WHITE
+            )
+        ),
         controls=[
             ft.Column(
                 controls=[
@@ -241,8 +263,8 @@ def build_scan_view(app_instance: 'App') -> ft.View:
         route="/app/driver/scan",
         bgcolor=ft.Colors.BLACK,
         appbar=ft.AppBar(
-            title=ft.Text("掃描行李", color=ft.Colors.WHITE), 
-            bgcolor=ft.Colors.BLACK, 
+            title=ft.Text("掃描行李", color=ft.Colors.BLACK), 
+            bgcolor=COLOR_BRAND_YELLOW, 
             leading=ft.IconButton(
                 icon=ft.Icons.ARROW_BACK, 
                 on_click=lambda _: app_instance.page.go("/app/driver"), 
@@ -297,8 +319,13 @@ def build_scan_results_view(app_instance: 'App') -> ft.View:
         route="/app/driver/scan_results",
         bgcolor=ft.Colors.BLACK,
         appbar=ft.AppBar(
-            title=ft.Text("掃描結果", color=ft.Colors.WHITE), 
-            bgcolor=ft.Colors.BLACK
+            title=ft.Text("掃描結果", color=ft.Colors.BLACK), 
+            bgcolor=COLOR_BRAND_YELLOW, 
+            leading=ft.IconButton(
+                icon=ft.Icons.ARROW_BACK, 
+                on_click=lambda _: app_instance.page.go("/app/driver/scan"), 
+                icon_color=ft.Colors.WHITE
+            )
         ),
         controls=[
             ft.Column(
@@ -340,7 +367,7 @@ def build_scan_results_view(app_instance: 'App') -> ft.View:
                                             height=50,
                                             bgcolor=ft.Colors.GREEN_100,
                                             color=ft.Colors.GREEN_800,
-                                            on_click=lambda _: app_instance.page.go("/splash/user"),
+                                            on_click=lambda _: app_instance.page.go("/app/driver/tracking_hotel"),
                                             expand=True,
                                         )
                                     ]

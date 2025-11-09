@@ -81,7 +81,15 @@ def build_user_tracking_view(app_instance: 'App') -> ft.View:
     return ft.View(
         route="/app/user/current_order",
         padding=0,
-        appbar=ft.AppBar(title=ft.Text("訂單追蹤"), bgcolor=ft.Colors.AMBER),
+        appbar=ft.AppBar(
+            title=ft.Text("訂單追蹤", color=ft.Colors.BLACK), 
+            bgcolor=COLOR_BRAND_YELLOW, 
+            leading=ft.IconButton(
+                icon=ft.Icons.ARROW_BACK, 
+                on_click=lambda _: app_instance.page.go("/app/user/dashboard"), 
+                icon_color=ft.Colors.WHITE
+            )
+        ),
         controls=[
             ft.Column(
                 controls=[

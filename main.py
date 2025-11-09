@@ -62,6 +62,8 @@ class App:
         self.return_date_ref = ft.Ref[ft.TextField]()
         self.pickup_location_ref = ft.Ref[ft.TextField]()
         self.dropoff_location_ref = ft.Ref[ft.TextField]()
+        
+        # --- 事先預約 Refs (從您上傳的程式碼恢復) ---
         self.prev_arrival_date_ref = ft.Ref[ft.TextField]()
         self.prev_return_date_ref = ft.Ref[ft.TextField]()
         self.prev_pickup_location_ref = ft.Ref[ft.TextField]()
@@ -70,6 +72,7 @@ class App:
         self.prev_return_date_val = None
         self.prev_pickup_location_val = None
         self.prev_dropoff_location_val = None
+        
         self.notes_ref = ft.Ref[ft.TextField]()
         self.current_search_mode = "pickup"
         
@@ -92,10 +95,13 @@ class App:
         self.scan_confirmed = False
         self.driver_alert_dialog = ft.Ref[ft.AlertDialog]()
         
+        # (從您上傳的程式碼恢復 booking_data)
+        self.booking_data = {} 
+
         # --- 動畫控制變數 ---
         self.animation_running = False # 用於 user_animation
         self.animation_timer = None # 用於 user_animation
-        self.animation_step = 0 # (從您上傳的程式碼恢復)
+        self.animation_step = 0 
 
 
     def main(self, page: ft.Page):
@@ -240,6 +246,14 @@ class App:
         logger.info("導航到地圖選擇 (即時預約 - 下車地點)")
         self.page.go("/app/user/map/instant_dropoff")
 
+    def handle_select_location_prev_pickup(self, e):
+        logger.info("導航到地圖選擇 (事先預約 - 上車地點)")
+        self.page.go("/app/user/map/prev_pickup")
+
+    def handle_select_location_prev_dropoff(self, e):
+        logger.info("導航到地圖選擇 (事先預約 - 下車地點)")
+        self.page.go("/app/user/map/prev_dropoff")
+
     def handle_search_location(self, e):
         
         search_query = self.search_text_ref.current.value
@@ -350,24 +364,30 @@ class App:
         
         logger.info("Order confirmed! Booking successful.")
         
-        def close_dialog(e):
-            self.page.dialog.open = False
-            self.page.update()
-            self.page.session.set("role", "driver")
-            self.page.go("/app/driver")
-
         success_dialog = ft.AlertDialog(
             modal=True,
             title=ft.Text("預約成功！"),
             content=ft.Text("正在為您尋找司機..."),
             actions=[
-                ft.TextButton("確認", on_click=close_dialog)
+                ft.TextButton(
+                    "確認", 
+                    on_click=lambda e: self.page.close(success_dialog), 
+                    style=ft.ButtonStyle(color=ft.Colors.GREEN)
+                )
             ],
             actions_alignment=ft.MainAxisAlignment.END,
+            on_dismiss=lambda e: self._navigate_after_dialog_close("/app/driver", "driver")
         )
-        self.page.dialog = success_dialog
-        success_dialog.open = True
-        self.page.update()
+        
+        self.page.open(success_dialog)
+
+    def _navigate_after_dialog_close(self, route: str, role: str = None):
+        """
+        一個輔助函式，確保在彈窗關閉後才執行頁面導航
+        """
+        if role:
+            self.page.session.set("role", role)
+        self.page.go(route)
 
     def handle_show_driver_alert(self):
         def new_order_to_driver():
@@ -384,28 +404,91 @@ class App:
                     actions_alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                 )
             
-            self.page.dialog = self.driver_alert_dialog.current
-            self.driver_alert_dialog.current.open = True
-            self.page.update()
+            self.page.open(self.driver_alert_dialog.current)
             
         logger.info("Showing driver alert")
         timer = threading.Timer(2.5, new_order_to_driver)
         timer.start()
 
     def handle_driver_reject(self, e):
-        
         logger.info("Driver rejected order")
         if self.driver_alert_dialog.current:
-            self.driver_alert_dialog.current.open = False
-        self.page.update()
+            self.driver_alert_dialog.current.on_dismiss = None
+            self.page.close(self.driver_alert_dialog.current)
 
     def handle_driver_accept(self, e):
-        
         logger.info("Driver accepted order")
-        if self.driver_alert_dialog.current:
-            self.driver_alert_dialog.current.open = False
-        self.page.update()
-        self.page.go("/app/driver/tracking")
+        dialog_to_close = self.driver_alert_dialog.current
+        
+        if dialog_to_close:
+            dialog_to_close.on_dismiss = lambda _: self._navigate_after_dialog_close("/app/driver/tracking_101")
+            self.page.close(dialog_to_close)
+        else:
+            self._navigate_after_dialog_close("/app/driver/tracking_101")
+        
+    def _show_driver_scan_dialog(self, e=None):
+        """
+        顯示抵達旅客地點的彈窗，並導航至掃描頁面。
+        """
+        logger.info("準備顯示司機掃描彈窗...")
+        
+        def show_dialog():
+            
+            dialog = ft.AlertDialog(
+                modal=True,
+                title=ft.Text("抵達目的地"),
+                content=ft.Text("抵達目的地。請掃描旅客的行李，並協助將行李上車"),
+                actions=[
+                    ft.TextButton(
+                        "開始掃描", 
+                        on_click=lambda e: self.page.close(dialog), 
+                        style=ft.ButtonStyle(color=ft.Colors.GREEN)
+                    )
+                ],
+                actions_alignment=ft.MainAxisAlignment.END,
+                on_dismiss=lambda e: self._navigate_after_dialog_close("/app/driver/scan")
+            )
+            
+            self.page.open(dialog) 
+            logger.info("司機掃描彈窗已顯示。")
+
+        if self.page:
+            self.page.run_thread(show_dialog) 
+        else:
+            logger.error("Page 不存在，無法顯示司機掃描彈窗。")
+    
+    # --- ↓↓↓ 新增函式：顯示司機抵達旅館彈窗 ↓↓↓ ---
+    def _show_driver_hotel_dialog(self, e=None):
+        """
+        顯示抵達旅館的彈窗，並導航回司機主頁。
+        """
+        logger.info("準備顯示司機抵達旅館彈窗...")
+        
+        def show_dialog():
+            
+            dialog = ft.AlertDialog(
+                modal=True,
+                title=ft.Text("抵達目的地"),
+                content=ft.Text("抵達目的地。請提醒旅館掃描旅客的行李，並協助將行李下車進入旅館"),
+                actions=[
+                    ft.TextButton(
+                        "確認", 
+                        on_click=lambda e: self.page.close(dialog), # 點擊按鈕只關閉
+                        style=ft.ButtonStyle(color=ft.Colors.GREEN)
+                    )
+                ],
+                actions_alignment=ft.MainAxisAlignment.END,
+                on_dismiss=lambda e: self._navigate_after_dialog_close("/app/driver") # 關閉後導航回司機主頁
+            )
+            
+            self.page.open(dialog) 
+            logger.info("司機抵達旅館彈窗已顯示。")
+
+        if self.page:
+            self.page.run_thread(show_dialog) 
+        else:
+            logger.error("Page 不存在，無法顯示司機抵達旅館彈窗。")
+    # --- ↑↑↑ 新增函式結束 ↑↑↑ ---
         
     def start_driver_animation_101(self):
         
@@ -454,7 +537,8 @@ class App:
                         
                     if self.driver_marker_ref.current:
                         self.driver_marker_ref.current.coordinates = final_map_coords
-                        self.page.go("/app/driver/scan")
+                    
+                    self._show_driver_scan_dialog()
                         
                     self.page.update()
                     return
@@ -493,7 +577,7 @@ class App:
                 return
 
             num_points = len(animation_points)
-            total_duration_sec = 8.0
+            total_duration_sec = 8.0 
             time_per_step = total_duration_sec / num_points
             
             final_lat_lon = animation_points[-1]
@@ -520,7 +604,10 @@ class App:
                         
                     if self.driver_marker_ref.current:
                         self.driver_marker_ref.current.coordinates = final_map_coords
-                        self.page.go("/app/driver/scan")
+
+                    # --- ↓↓↓ 修改點：呼叫新的 _show_driver_hotel_dialog ↓↓↓ ---
+                    self._show_driver_hotel_dialog()
+                    # --- ↑↑↑ 修改結束 ↑↑↑ ---
                         
                     self.page.update()
                     return
@@ -539,57 +626,46 @@ class App:
 
         threading.Timer(0.5, animation_logic).start()
 
-    # --- ↓↓↓ 修正後的函式 (移除了錯誤的 'if self.page.dialog:') ↓↓↓ ---
     def _show_arrival_dialog_and_navigate(self, e=None):
         """
         顯示行李送達的彈窗，並在關閉時導航回儀表板。
-        (這是一個執行緒安全的函式)
         """
         logger.info("準備顯示抵達彈窗...")
         
         def show_dialog():
-            logger.info("AlertDialog 顯示中...")
+            
             dialog = ft.AlertDialog(
                 modal=True,
-                title=ft.Text("行程結束", color=COLOR_TEXT_DARK),
-                content=ft.Column(
-                    controls=[
-                        ft.Text("您的行李已被送達目的地。", color=COLOR_TEXT_DARK),
-                        ft.Text("圓山大飯店 已為您完成 check-in:", color=COLOR_TEXT_DARK),
-                        ft.Text("  2025/11/07 入住 ", color=COLOR_TEXT_DARK),
-                        ft.Text("  2025/11/08 退房 ", color=COLOR_TEXT_DARK),
-                    ],
-                    height=150
-                ),
+                title=ft.Text("行程結束"),
+                content=ft.Text("您的行李已被送達目的地。"),
                 actions=[
-                    ft.TextButton("確認", on_click=lambda e: self.page.close(dialog))
+                    ft.TextButton(
+                        "確認", 
+                        on_click=lambda e: self.page.close(dialog), 
+                        style=ft.ButtonStyle(color=ft.Colors.GREEN)
+                    )
                 ],
                 actions_alignment=ft.MainAxisAlignment.END,
-                on_dismiss=lambda e: self.page.go("/app/user/dashboard") ,
-                bgcolor=ft.Colors.WHITE
+                on_dismiss=lambda e: self._navigate_after_dialog_close("/app/user/dashboard") 
             )
             
-            self.page.open(dialog)
-            self.page.update()
+            self.page.open(dialog) 
             logger.info("抵達彈窗已顯示。")
 
         if self.page:
-            self.page.run_thread(show_dialog)
+            self.page.run_thread(show_dialog) 
         else:
             logger.error("Page 不存在，無法顯示抵達彈窗。")
-    # --- ↑↑↑ 修正結束 ↑↑↑ ---
 
 
     def _force_stop_animation_and_redirect(self):
         """
         由 10 秒計時器觸發，強制停止動畫並顯示彈窗。
-        (恢復到您上傳的程式碼版本)
         """
         if self.animation_running:
             logger.info("10-second timer fired. Stopping animation early.")
-            self.animation_running = False # 發送停止訊號
+            self.animation_running = False 
             
-            # (導航和 update 會由 dialog 函式處理)
             self._show_arrival_dialog_and_navigate()
 
 
@@ -604,7 +680,6 @@ class App:
             
             self.animation_running = True 
             
-            # (從您上傳的程式碼恢復：使用 self.map_ref 和 self.driver_marker_ref)
             if not self.driver_marker_ref.current or not self.map_ref.current:
                 logger.error("Driver marker or map not ready for animation after delay.")
                 self.animation_running = False
@@ -679,7 +754,6 @@ class App:
 
         threading.Timer(0.5, animation_logic).start()
 
-    # (從您上傳的程式碼恢復 'stop_user_animation')
     def stop_user_animation(self):
         """
         從外部停止動畫 (例如當 View 被銷毀時)。
@@ -692,12 +766,11 @@ class App:
 
     # --- App View Builders ---
     def build_hotel_app_view(self):
-        # ... (旅館介面 - 未變) ...
         email = self.page.session.get("email")
         return ft.View(
             route="/app/hotel",
             controls=[
-                ft.AppBar(title=ft.Text("旅館主畫面"), bgcolor=ft.Colors.AMBER),
+                ft.AppBar(title=ft.Text("旅館主畫面"), bgcolor=COLOR_BG_DARK_GOLD), # (使用 config.py 中的變數)
                 ft.Column([
                     ft.Text(f"歡迎, 旅館 {email}!", size=30),
                     ft.Text("這裡是旅館 App 主畫面 (下一步)")
