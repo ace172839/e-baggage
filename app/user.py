@@ -3,7 +3,7 @@ import flet as ft
 import flet_map as map
 from typing import TYPE_CHECKING
 
-from config import LOCATION_BANQIAO_STATION, LOCATION_TAIPEI_101, LOCATION_TAIPEI_CITY_HALL, USER_DASHBOARD_MAP_TEMPLATE, MAP_ROUTING_101_BANQIAO
+from config import LOCATION_GRAND_HOTEL, LOCATION_TAIPEI_101, LOCATION_TAIPEI_CITY_HALL, USER_DASHBOARD_MAP_TEMPLATE, MAP_ROUTING_101_GRAND_HOTEL
 from config import WINDOW_HEIGHT, WINDOW_WIDTH
 from constants import *
 
@@ -17,7 +17,7 @@ def build_user_tracking_view(app_instance: 'App') -> ft.View:
     logger.info("Building User Tracking View")
     
     driver_coords = LOCATION_TAIPEI_101
-    pickup_coords = LOCATION_BANQIAO_STATION
+    pickup_coords = LOCATION_GRAND_HOTEL
     
     driver_marker = map.Marker(
         ref=app_instance.driver_marker_ref,
@@ -35,7 +35,7 @@ def build_user_tracking_view(app_instance: 'App') -> ft.View:
     )
         
     route_to_pickup = map.PolylineMarker(
-        coordinates=[map.MapLatitudeLongitude(coord[1], coord[0]) for coord in MAP_ROUTING_101_BANQIAO["routes"][0]["geometry"]["coordinates"]],
+        coordinates=[map.MapLatitudeLongitude(coord[1], coord[0]) for coord in MAP_ROUTING_101_GRAND_HOTEL["routes"][0]["geometry"]["coordinates"]],
         color=ft.Colors.GREEN_700,
         border_stroke_width=5
     )

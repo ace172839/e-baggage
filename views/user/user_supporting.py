@@ -17,11 +17,15 @@ def build_support_view(app_instance: 'App') -> ft.View:
     """
     建立「客服」頁面的完整 View
     """
-    # ... (您原有的 build_support_content 邏輯) ...
     content_column = ft.Column(
         controls=[
             ft.Text("客服支援", size=30, color=COLOR_TEXT_DARK),
-            ft.Text("這裡是客服頁面...", color=COLOR_TEXT_DARK)
+            ft.Text("直撥電話：02-2222-2222", size=20, color=COLOR_TEXT_DARK),
+            ft.Text("電子郵件：support@ebaggage.com", size=20, color=COLOR_TEXT_DARK),
+            ft.Divider(height=10, visible=False),
+            ft.Text("線上專人客服時間：", size=20, color=ft.Colors.GREY_800),
+            ft.Text("  週一至週五    09:00-17:00", size=20, color=ft.Colors.GREY_800),
+            ft.Text("  週末及國定假日 09:00-21:00", size=20, color=ft.Colors.GREY_800),
         ],
         scroll=ft.ScrollMode.AUTO,
     )

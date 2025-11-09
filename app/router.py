@@ -21,7 +21,7 @@ from views.user.user_history import history_view
 # --- 從 app/ 子模組匯入 ---
 from app.user import build_user_tracking_view
 from app.scan import build_scan_view, build_scan_results_view
-from app.driver import build_driver_home_view, build_driver_tracking_view, build_scan_view as build_driver_scan_view, build_scan_results_view as build_driver_scan_results_view
+from app.driver import build_driver_home_view, build_driver_tracking_view_101, build_driver_tracking_view_hotel, build_scan_view as build_driver_scan_view, build_scan_results_view as build_driver_scan_results_view
 from app.hotel import build_hotel_view, build_scan_view as build_hotel_scan_view, build_scan_results_view as build_hotel_scan_results_view
 
 
@@ -100,9 +100,12 @@ def create_route_handler(app_instance: 'App'):
         elif page.route == "/app/driver":
             page.views.append(build_driver_home_view(app_instance))
             app_instance.handle_show_driver_alert()
-        elif page.route == "/app/driver/tracking":
-            page.views.append(build_driver_tracking_view(app_instance))
-            app_instance.start_driver_animation()
+        elif page.route == "/app/driver/tracking_101":
+            page.views.append(build_driver_tracking_view_101(app_instance))
+            app_instance.start_driver_animation_101()
+        elif page.route == "/app/driver/tracking_hotel":
+            page.views.append(build_driver_tracking_view_hotel(app_instance))
+            app_instance.start_driver_animation_hotel()
         elif page.route == "/app/driver/scan":
             page.views.append(build_driver_scan_view(app_instance))
         elif page.route == "/app/driver/scan_results":

@@ -60,6 +60,7 @@ def build_login_view(app_instance: 'App', role: str) -> ft.View:
                                         ref=app_instance.login_username,
                                         label="帳號:",
                                         bgcolor=ft.Colors.WHITE,
+                                        color=COLOR_TEXT_DARK,
                                         border_radius=8,
                                     ),
                                     ft.TextField(
@@ -70,12 +71,14 @@ def build_login_view(app_instance: 'App', role: str) -> ft.View:
                                         helper_text="請輸入8-10英文大小組合與數字",
                                         helper_style=ft.TextStyle(color=ft.Colors.RED_300),
                                         bgcolor=ft.Colors.WHITE,
+                                        color=COLOR_TEXT_DARK,
                                         border_radius=8,
                                     ),
                                     ft.TextField(
                                         ref=app_instance.login_captcha,
                                         label="驗證碼:",
                                         bgcolor=ft.Colors.WHITE,
+                                        color=COLOR_TEXT_DARK,
                                         border_radius=8,
                                     ),
                                     

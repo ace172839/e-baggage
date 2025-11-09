@@ -8,9 +8,19 @@ import json
 import threading
 
 from constants import *
+# (注意：這假設您的 config.py 已經被更新)
 from config import *
 
-# --- 恢復原始的 View 匯入 ---
+# --- 匯入新的 config 變數 ---
+from config import (
+    LOCATION_TAIPEI_101, 
+    LOCATION_GRAND_HOTEL, 
+    MAP_ROUTING_101_GRAND_HOTEL,
+    MAP_ROUTING_CITYHALL_101, # (這個 driver 路線保持不變)
+    USER_DASHBOARD_MAP_TEMPLATE,
+)
+
+# --- 恢復原始的 router 匯入 ---
 from app.router import create_route_handler
 
 
@@ -22,6 +32,7 @@ else:
     level = logging.INFO
     mode = "production"
 
+# (設定 logging)
 logging.basicConfig(
     filename=f"ebaggage_{datetime.datetime.now().strftime('%Y%m%dT%H%M%S')}.log",
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -61,19 +72,33 @@ class App:
         self.prev_dropoff_location_val = None
         self.notes_ref = ft.Ref[ft.TextField]()
         self.current_search_mode = "pickup"
+        
+        # --- 全域地圖 Refs ---
         self.map_ref = ft.Ref[map.Map]()
         self.marker_layer_ref = ft.Ref[map.MarkerLayer]()
         self.polyline_layer_ref = ft.Ref[map.PolylineLayer]()
         self.driver_marker_ref = ft.Ref[map.Marker]()
+        
+        # --- 使用者追蹤頁面專用 Refs ---
+        self.user_tracking_map_ref = ft.Ref[map.Map]()
+        self.car_marker_ref = ft.Ref[map.Marker]()
+        
+        # --- 搜尋 Refs ---
         self.search_bar_ref = ft.Ref[ft.Container]()
         self.search_text_ref = ft.Ref[ft.TextField]()
+        
+        # --- 其他狀態 ---
         self.scan_results = 0
         self.scan_confirmed = False
         self.driver_alert_dialog = ft.Ref[ft.AlertDialog]()
+        
+        # --- 動畫控制變數 ---
+        self.animation_running = False # 用於 user_animation
+        self.animation_timer = None # 用於 user_animation
+        self.animation_step = 0 # (從您上傳的程式碼恢復)
 
 
     def main(self, page: ft.Page):
-        # ... (main 函數保持不變) ...
         self.page = page
         self.page.title = "e-baggage"
 
@@ -89,70 +114,22 @@ class App:
             font_family="LXGWWenKaiTC-Regular",
 
             color_scheme=ft.ColorScheme(
-                primary=ft.Colors.BLACK,                    # 登入畫面的 icon，被選中的文字
+                primary=ft.Colors.BLACK,
                 on_primary=ft.Colors.WHITE,
                 primary_container=ft.Colors.BLUE,
                 on_primary_container=ft.Colors.LIGHT_BLUE,
-                secondary_container=ft.Colors.BLUE_GREY_700,        # selected_navigator_bar container
-                on_secondary_container=ft.Colors.WHITE,     # selected_navigator_bar icon
-                on_surface=ft.Colors.BLACK,                   # selected_navigator_bar的文字
-                on_surface_variant=ft.Colors.GREY_500,      # 未被選中的 TextField, navigator_bar的文字
-                surface_container_low=COLOR_BG_LIGHT_TAN,     # 產生驗證碼bg
+                secondary_container=ft.Colors.BLUE_GREY_700,
+                on_secondary_container=ft.Colors.WHITE,
+                on_surface=ft.Colors.BLACK,
+                on_surface_variant=ft.Colors.GREY_500,
+                surface_container_low=COLOR_BG_LIGHT_TAN,
             ),
             
-            # --- 其他 Theme (保持不變) ---
             date_picker_theme=ft.DatePickerTheme(
-                bgcolor=ft.Colors.WHITE,                    # DatePicker 彈窗是 "Surface" (白色)
-                range_picker_bgcolor=ft.Colors.PINK,       # RangePicker 彈窗是 "Surface" (白色)
+                bgcolor=ft.Colors.WHITE,
                 header_bgcolor=COLOR_BG_LIGHT_TAN,
                 locale=ft.Locale("zh", "TW")
             ),
-
-            # color_scheme=ft.ColorScheme(
-            #     # --- 主要 (Primary) 色系 ---
-            #     primary=ft.Colors.BLACK,                    # 登入畫面的 icon，被選中的文字
-            #     on_primary=ft.Colors.BLACK,                   # (2) 在「主要顏色」上的文字/圖示
-            #     primary_container=ft.Colors.BLACK,          # (3) "次要" 的主要顏色容器 (例如 FAB)
-            #     on_primary_container=ft.Colors.BLACK,       # (4) 在 "Primary Container" 上的文字/圖示
-
-            #     # --- 次要 (Secondary) 色系 ---
-            #     secondary=ft.Colors.GREEN,                  # (5) 次要顏色 (例如選中的 FilterChip)
-            #     on_secondary=ft.Colors.GREEN,                 # (6) 在「次要顏色」上的文字/圖示
-            #     secondary_container=ft.Colors.GREEN,            # selected_navigator_bar container
-            #     on_secondary_container=ft.Colors.GREEN,         # selected_navigator_bar icon
-
-            #     # --- 第三 (Tertiary) 色系 ---
-            #     tertiary=ft.Colors.BLUE,                    # (9) 第三顏色
-            #     on_tertiary=ft.Colors.BLUE,                  # (10) 在「第三顏色」上的文字/圖示
-            #     tertiary_container=ft.Colors.BLUE,          # (11)
-            #     on_tertiary_container=ft.Colors.BLUE,     # (12)
-
-            #     # --- 錯誤 (Error) 色系 ---
-            #     error=ft.Colors.ORANGE,                # (13) 錯誤顏色
-            #     on_error=ft.Colors.ORANGE,                     # (14) 在「錯誤顏色」上的文字/圖示
-            #     error_container=ft.Colors.ORANGE,      # (15)
-            #     on_error_container=ft.Colors.ORANGE, # (16)
-
-            #     # --- 背景 (Background) ---
-            #     background=ft.Colors.PURPLE,                # (17) 【Page 背景】(App 最底層)
-            #     on_background=ft.Colors.PURPLE,             # (18) 在 "Background" 上的文字/圖示
-
-            #     # --- 表面 (Surface) ---
-            #     on_surface=ft.Colors.RED,                   # selected_navigator_bar的文字
-
-            #     # --- 表面變體 (Surface Variant) ---
-            #     surface_variant=ft.Colors.RED,             # (21) 表面變體 (例如 TextField 邊框, Chip 背景)
-            #     on_surface_variant=ft.Colors.GREY_700,             # 未被選中的 TextField, navigator_bar的文字
-
-            #     # --- 表面容器 (Surface Container) (Material 3 核心) ---
-            #     surface_container_low=ft.Colors.YELLOW,     # 產生驗證碼bg
-            # ),
-            
-            # # --- 其他 Theme (保持不變) ---
-            # date_picker_theme=ft.DatePickerTheme(
-            #     bgcolor=ft.Colors.WHITE, # DatePicker 彈窗是 "Surface" (白色)
-            #     locale=ft.Locale("zh", "TW")
-            # ),
             data_table_theme=ft.DataTableTheme(
                 data_text_style=ft.TextStyle(
                     size=12,
@@ -162,6 +139,7 @@ class App:
                 divider_thickness=0
             )
         )
+        
         self.page.on_route_change = create_route_handler(self)
         self.page.go("/splash")
 
@@ -181,32 +159,26 @@ class App:
             self.page.update()
 
     def login_view_handle_login(self, e, role: str):
-        # --- 模式 1: 偵錯模式 ---
         if self.mode == "debug":
             logger.warning("在偵錯模式下登入，已跳過驗證。")
             self.page.session.set("logged_in", True)
             self.page.session.set("role", role)
             self.page.session.set("email", self.login_username.current.value or "demo@user.com")
             
-            # *** 修改點：登入後去 /app/user (主外殼) ***
             self.page.go(f"/app/{role}")
             return
         
-        # --- 模式 2: 正式模式 (省略) ---
         logger.info("正式模式登入驗證 (未實作)")
 
         
     # === Demo 流程 Handlers ===
     
-    # --- 恢復 handle_nav_bar_change ---
     def handle_nav_bar_change(self, e):
         """
         處理「底部導航列」的點擊事件
         """
         selected_index = int(e.data) 
-        content = None
         
-        # 清除地圖搜尋框 (如果有的話)
         if self.search_bar_ref.current:
             self.search_bar_ref.current.visible = False
 
@@ -215,7 +187,7 @@ class App:
             self.page.go("/app/user/more")
         elif selected_index == 1:
             logger.info("導航到「即時預約」Demo 頁面")
-            self.page.go("/app/user/booking_instant") # 這是一個獨立的 View
+            self.page.go("/app/user/booking_instant") 
         elif selected_index == 2:
             logger.info("導航到「首頁」儀表板")
             self.page.go("/app/user/dashboard")
@@ -227,10 +199,8 @@ class App:
             self.page.go("/app/user/support")
         else:
             logger.error(f"未知的導航索引: {selected_index}")
-            self.page.go("/app/user/dashboard") # 預設返回
+            self.page.go("/app/user/dashboard") 
     
-
-    # --- 以下 Demo 相關的 Handlers 保持不變 ---
 
     def _update_map_location(self, coords: tuple, location_name: str, mode: str):
         logger.info(f"Updating map for {mode} to {location_name} at {coords}")
@@ -275,8 +245,8 @@ class App:
         search_query = self.search_text_ref.current.value
         logger.info(f"Handling search for: {search_query}")
         
-        if "板橋" in search_query:
-            self._update_map_location(LOCATION_BANQIAO_STATION, "板橋車站", self.current_search_mode)
+        if "圓山" in search_query:
+            self._update_map_location(LOCATION_GRAND_HOTEL, "圓山大飯店", self.current_search_mode)
         elif "101" in search_query:
             self._update_map_location(LOCATION_TAIPEI_101, "台北 101", self.current_search_mode)
         else:
@@ -382,6 +352,7 @@ class App:
         
         def close_dialog(e):
             self.page.dialog.open = False
+            self.page.update()
             self.page.session.set("role", "driver")
             self.page.go("/app/driver")
 
@@ -394,7 +365,8 @@ class App:
             ],
             actions_alignment=ft.MainAxisAlignment.END,
         )
-        self.page.open(success_dialog)
+        self.page.dialog = success_dialog
+        success_dialog.open = True
         self.page.update()
 
     def handle_show_driver_alert(self):
@@ -411,27 +383,31 @@ class App:
                     ],
                     actions_alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                 )
-                self.page.open(self.driver_alert_dialog.current)
+            
+            self.page.dialog = self.driver_alert_dialog.current
+            self.driver_alert_dialog.current.open = True
             self.page.update()
+            
         logger.info("Showing driver alert")
-        # 啟動一個 2.5 秒的非阻塞計時器
-        timer = threading.Timer(2, new_order_to_driver)
+        timer = threading.Timer(2.5, new_order_to_driver)
         timer.start()
 
     def handle_driver_reject(self, e):
         
         logger.info("Driver rejected order")
-        self.page.close(self.driver_alert_dialog.current)
+        if self.driver_alert_dialog.current:
+            self.driver_alert_dialog.current.open = False
         self.page.update()
 
     def handle_driver_accept(self, e):
         
         logger.info("Driver accepted order")
-        self.page.close(self.driver_alert_dialog.current)
+        if self.driver_alert_dialog.current:
+            self.driver_alert_dialog.current.open = False
         self.page.update()
         self.page.go("/app/driver/tracking")
         
-    def start_driver_animation(self):
+    def start_driver_animation_101(self):
         
         logger.info("Scheduling driver tracking animation")
 
@@ -442,12 +418,8 @@ class App:
                 logger.error("Driver marker or map not ready for animation after delay.")
                 return
 
-            # --- 新的路徑資料 ---
             path_data = MAP_ROUTING_CITYHALL_101["routes"][0]["geometry"]["coordinates"]
-            # path_data = json.loads(path_json_string)
             
-            # Flet Map 使用 [latitude, longitude]，但 GeoJSON 是 [longitude, latitude]
-            # 我們需要轉換它
             animation_points = [[lat, lon] for lon, lat in path_data]
             
             if not animation_points:
@@ -456,30 +428,24 @@ class App:
 
             num_points = len(animation_points)
             total_duration_sec = 8.0
-            # 計算每個點之間的延遲時間
             time_per_step = total_duration_sec / num_points
             
-            # 動畫的最終點
             final_lat_lon = animation_points[-1]
             final_map_coords = map.MapLatitudeLongitude(*final_lat_lon)
 
             def animate_step(i):
                 if i >= num_points:
-                    # --- 動畫結束 ---
                     logger.info("Animation finished")
                     
                     if self.map_ref.current:
-                        # 將地圖中心設置為動畫的確切終點
-                        self.map_ref.current.center = final_map_coords
-                        self.map_ref.current.zoom = 16 # 您可以調整縮放等級
+                        self.map_ref.current.center_on(final_map_coords, 16)
                     
                     if self.polyline_layer_ref.current:
-                        # 更新路線，從動畫終點 (台北 101 附近) 到板橋
                         self.polyline_layer_ref.current.polylines = [
                             map.PolylineMarker(
                                 coordinates=[
-                                    final_map_coords,
-                                    map.MapLatitudeLongitude(*LOCATION_BANQIAO_STATION), # 假設 LOCATION_BANQIAO_STATION 已定義
+                                    final_map_coords, 
+                                    map.MapLatitudeLongitude(*LOCATION_TAIPEI_101), 
                                 ],
                                 color=ft.Colors.BLUE,
                                 border_stroke_width=5
@@ -487,79 +453,172 @@ class App:
                         ]
                         
                     if self.driver_marker_ref.current:
-                        # 確保標記停在最終點
                         self.driver_marker_ref.current.coordinates = final_map_coords
                         self.page.go("/app/driver/scan")
                         
                     self.page.update()
                     return
                 
-                # --- 動畫執行中 ---
                 current_lat, current_lon = animation_points[i]
                 
                 logger.debug(f"Animation step {i}: Lat={current_lat}, Lon={current_lon}")
                 
                 if self.driver_marker_ref.current:
-                    # 更新標記到當前路徑點
                     self.driver_marker_ref.current.coordinates = map.MapLatitudeLongitude(current_lat, current_lon)
                     self.page.update()
 
-                # 安排下一步
                 threading.Timer(time_per_step, lambda: animate_step(i + 1)).start()
 
-            # 從第一個點開始動畫 (index 0)
             animate_step(0)
 
-        # Delay the animation start to allow the view to build and refs to update
         threading.Timer(0.5, animation_logic).start()
+
+    def start_driver_animation_hotel(self):
+        
+        logger.info("Scheduling driver tracking animation")
+
+        def animation_logic():
+            logger.info("Starting driver tracking animation after delay")
+            
+            if not self.driver_marker_ref.current or not self.map_ref.current:
+                logger.error("Driver marker or map not ready for animation after delay.")
+                return
+
+            path_data = MAP_ROUTING_101_GRAND_HOTEL["routes"][0]["geometry"]["coordinates"]
+            
+            animation_points = [[lat, lon] for lon, lat in path_data]
+            
+            if not animation_points:
+                logger.error("No coordinates found in path data")
+                return
+
+            num_points = len(animation_points)
+            total_duration_sec = 8.0
+            time_per_step = total_duration_sec / num_points
+            
+            final_lat_lon = animation_points[-1]
+            final_map_coords = map.MapLatitudeLongitude(*final_lat_lon)
+
+            def animate_step(i):
+                if i >= num_points:
+                    logger.info("Animation finished")
+                    
+                    if self.map_ref.current:
+                        self.map_ref.current.center_on(final_map_coords, 16)
+                    
+                    if self.polyline_layer_ref.current:
+                        self.polyline_layer_ref.current.polylines = [
+                            map.PolylineMarker(
+                                coordinates=[
+                                    final_map_coords, 
+                                    map.MapLatitudeLongitude(*LOCATION_GRAND_HOTEL), 
+                                ],
+                                color=ft.Colors.BLUE,
+                                border_stroke_width=5
+                            )
+                        ]
+                        
+                    if self.driver_marker_ref.current:
+                        self.driver_marker_ref.current.coordinates = final_map_coords
+                        self.page.go("/app/driver/scan")
+                        
+                    self.page.update()
+                    return
+                
+                current_lat, current_lon = animation_points[i]
+                
+                logger.debug(f"Animation step {i}: Lat={current_lat}, Lon={current_lon}")
+                
+                if self.driver_marker_ref.current:
+                    self.driver_marker_ref.current.coordinates = map.MapLatitudeLongitude(current_lat, current_lon)
+                    self.page.update()
+
+                threading.Timer(time_per_step, lambda: animate_step(i + 1)).start()
+
+            animate_step(0)
+
+        threading.Timer(0.5, animation_logic).start()
+
+    # --- ↓↓↓ 修正後的函式 (移除了錯誤的 'if self.page.dialog:') ↓↓↓ ---
+    def _show_arrival_dialog_and_navigate(self, e=None):
+        """
+        顯示行李送達的彈窗，並在關閉時導航回儀表板。
+        (這是一個執行緒安全的函式)
+        """
+        logger.info("準備顯示抵達彈窗...")
+        
+        def show_dialog():
+            logger.info("AlertDialog 顯示中...")
+            dialog = ft.AlertDialog(
+                modal=True,
+                title=ft.Text("行程結束", color=COLOR_TEXT_DARK),
+                content=ft.Column(
+                    controls=[
+                        ft.Text("您的行李已被送達目的地。", color=COLOR_TEXT_DARK),
+                        ft.Text("圓山大飯店 已為您完成 check-in:", color=COLOR_TEXT_DARK),
+                        ft.Text("  2025/11/07 入住 ", color=COLOR_TEXT_DARK),
+                        ft.Text("  2025/11/08 退房 ", color=COLOR_TEXT_DARK),
+                    ],
+                    height=150
+                ),
+                actions=[
+                    ft.TextButton("確認", on_click=lambda e: self.page.close(dialog))
+                ],
+                actions_alignment=ft.MainAxisAlignment.END,
+                on_dismiss=lambda e: self.page.go("/app/user/dashboard") ,
+                bgcolor=ft.Colors.WHITE
+            )
+            
+            self.page.open(dialog)
+            self.page.update()
+            logger.info("抵達彈窗已顯示。")
+
+        if self.page:
+            self.page.run_thread(show_dialog)
+        else:
+            logger.error("Page 不存在，無法顯示抵達彈窗。")
+    # --- ↑↑↑ 修正結束 ↑↑↑ ---
+
 
     def _force_stop_animation_and_redirect(self):
         """
-        由 10 秒計時器觸發，強制停止動畫並導航。
+        由 10 秒計時器觸發，強制停止動畫並顯示彈窗。
+        (恢復到您上傳的程式碼版本)
         """
         if self.animation_running:
             logger.info("10-second timer fired. Stopping animation early.")
             self.animation_running = False # 發送停止訊號
             
-            # 導航到 /app/hotel
-            self.page.go("/app/hotel")
-            # 確保頁面更新
-            self.page.update()
+            # (導航和 update 會由 dialog 函式處理)
+            self._show_arrival_dialog_and_navigate()
 
-    # --- 修改後的 start_user_animation ---
+
     def start_user_animation(self):
         
-        logger.info("Scheduling driver tracking animation")
+        logger.info("Scheduling user tracking animation")
 
-        # 確保動畫控制變數已在 class 中定義 (或在這裡設置)
         self.animation_running = False
 
         def animation_logic():
-            logger.info("Starting driver tracking animation after delay")
+            logger.info("Starting user tracking animation after delay")
             
-            # --- 設定控制旗標 ---
-            self.animation_running = True # 允許動畫開始
+            self.animation_running = True 
             
+            # (從您上傳的程式碼恢復：使用 self.map_ref 和 self.driver_marker_ref)
             if not self.driver_marker_ref.current or not self.map_ref.current:
                 logger.error("Driver marker or map not ready for animation after delay.")
                 self.animation_running = False
                 return
 
-            # --- 啟動 10 秒計時器 ---
-            # 這個計時器將在 10 秒後呼叫停止函式
             threading.Timer(10.0, self._force_stop_animation_and_redirect).start()
-            # --------------------------
 
-            # --- 新的路徑資料 ---
             try:
-                path_data = MAP_ROUTING_101_BANQIAO["routes"][0]["geometry"]["coordinates"]
+                path_data = MAP_ROUTING_101_GRAND_HOTEL["routes"][0]["geometry"]["coordinates"]
             except Exception as e:
                 logger.error(f"Failed to get path data: {e}")
                 self.animation_running = False
                 return
                 
-            # Flet Map 使用 [latitude, longitude]，但 GeoJSON 是 [longitude, latitude]
-            # 我們需要轉換它
             animation_points = [[lat, lon] for lon, lat in path_data]
             
             if not animation_points:
@@ -568,39 +627,31 @@ class App:
                 return
 
             num_points = len(animation_points)
-            total_duration_sec = 100.0 # 動畫總時長 (會被 10 秒計時器中斷)
-            # 計算每個點之間的延遲時間
+            total_duration_sec = 100.0 
             time_per_step = total_duration_sec / num_points
             
-            # 動畫的最終點
-            final_lat_lon = animation_points[-1]
-            final_map_coords = map.MapLatitudeLongitude(*final_lat_lon)
+            final_map_coords = map.MapLatitudeLongitude(*LOCATION_GRAND_HOTEL) 
 
             def animate_step(i):
                 
-                # --- 檢查動畫是否已被外部停止 ---
                 if not self.animation_running:
                     logger.debug(f"Animation stopped externally at step {i}.")
                     return
-                # ------------------------------------
 
                 if i >= num_points:
-                    # --- 動畫正常結束 (100秒後) ---
                     logger.info("Animation finished normally (100s complete)")
                     
-                    self.animation_running = False # 標記為已完成
+                    self.animation_running = False 
                     
                     if self.map_ref.current:
-                        # 將地圖中心設置為動畫的確切終點
                         self.map_ref.current.center_on(final_map_coords, 14)
                     
                     if self.polyline_layer_ref.current:
-                        # 更新路線
                         self.polyline_layer_ref.current.polylines = [
                             map.PolylineMarker(
                                 coordinates=[
                                     final_map_coords,
-                                    map.MapLatitudeLongitude(*LOCATION_BANQIAO_STATION), # 假設 LOCATION_BANQIAO_STATION 已定義
+                                    map.MapLatitudeLongitude(*LOCATION_GRAND_HOTEL), 
                                 ],
                                 color=ft.Colors.BLUE,
                                 border_stroke_width=5
@@ -608,31 +659,36 @@ class App:
                         ]
                         
                     if self.driver_marker_ref.current:
-                        # 確保標記停在最終點
                         self.driver_marker_ref.current.coordinates = final_map_coords
                         
-                    self.page.update()
+                    self._show_arrival_dialog_and_navigate()
                     return
                 
-                # --- 動畫執行中 ---
                 current_lat, current_lon = animation_points[i]
                 
                 logger.debug(f"Animation step {i}: Lat={current_lat}, Lon={current_lon}")
                 
                 if self.driver_marker_ref.current:
-                    # 更新標記到當前路徑點
                     self.driver_marker_ref.current.coordinates = map.MapLatitudeLongitude(current_lat, current_lon)
                     self.page.update()
 
-                # 安排下一步
-                if self.animation_running: # 再次檢查，避免在安排下一步時被停止
+                if self.animation_running: 
                     threading.Timer(time_per_step, lambda: animate_step(i + 1)).start()
 
-            # 從第一個點開始動畫 (index 0)
             animate_step(0)
 
-        # Delay the animation start to allow the view to build and refs to update
         threading.Timer(0.5, animation_logic).start()
+
+    # (從您上傳的程式碼恢復 'stop_user_animation')
+    def stop_user_animation(self):
+        """
+        從外部停止動畫 (例如當 View 被銷毀時)。
+        """
+        logger.info("從外部停止使用者動畫 (stop_user_animation)")
+        if self.animation_timer:
+            self.animation_timer.cancel()
+            self.animation_timer = None
+
 
     # --- App View Builders ---
     def build_hotel_app_view(self):

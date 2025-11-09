@@ -65,7 +65,7 @@ def build_previous_booking_view(app_instance: 'App') -> ft.Control:
                             value=return_date,
                         ),
                         ft.TextField(
-                            label="返程地點 (例如：板橋車站)",
+                            label="返程地點 (例如：圓山大飯店)",
                             prefix_icon=ft.Icons.FLIGHT_TAKEOFF,
                             color=COLOR_TEXT_DARK,
                             read_only=True,

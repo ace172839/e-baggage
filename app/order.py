@@ -3,7 +3,7 @@ import flet as ft
 import flet_map as map
 from typing import TYPE_CHECKING
 
-from config import LOCATION_BANQIAO_STATION, LOCATION_TAIPEI_101, USER_DASHBOARD_MAP_TEMPLATE
+from config import LOCATION_GRAND_HOTEL, LOCATION_TAIPEI_101, USER_DASHBOARD_MAP_TEMPLATE
 from constants import *
 
 if TYPE_CHECKING:
@@ -14,17 +14,17 @@ logger = logging.getLogger(__name__)
 def build_confirm_order_view(app_instance: 'App') -> ft.View:
     logger.info("Building Confirm Order View")
     
-    pickup_name = "板橋車站"
-    pickup_coords = LOCATION_BANQIAO_STATION
+    pickup_name = "圓山大飯店"
+    pickup_coords = LOCATION_GRAND_HOTEL
     dropoff_name = "台北 101"
     dropoff_coords = LOCATION_TAIPEI_101
     
     if app_instance.pickup_location_ref.current and "板橋" in app_instance.pickup_location_ref.current.value:
-        pickup_name, pickup_coords = "板橋車站", LOCATION_BANQIAO_STATION
+        pickup_name, pickup_coords = "圓山大飯店", LOCATION_GRAND_HOTEL
         dropoff_name, dropoff_coords = "台北 101", LOCATION_TAIPEI_101
     elif app_instance.pickup_location_ref.current and "101" in app_instance.pickup_location_ref.current.value:
         pickup_name, pickup_coords = "台北 101", LOCATION_TAIPEI_101
-        dropoff_name, dropoff_coords = "板橋車站", LOCATION_BANQIAO_STATION
+        dropoff_name, dropoff_coords = "圓山大飯店", LOCATION_GRAND_HOTEL
 
     confirm_map = map.Map(
         expand=True,

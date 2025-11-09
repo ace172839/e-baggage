@@ -322,9 +322,17 @@ def show_main_options(bs: ft.BottomSheet, app_instance: 'App'):
                                 ),
                                 bgcolor=ft.Colors.BLACK12,
                                 border_radius=8
+                            ),
+
+                            ft.Container(
+                                content=ft.ListTile(
+                                    title=ft.Text("線上 AI 客服支援", color=COLOR_TEXT_DARK),
+                                    leading=ft.Icon(ft.Icons.SUPPORT_AGENT),
+                                    bgcolor=ft.Colors.TRANSPARENT
+                                ),
+                                bgcolor=ft.Colors.BLACK12,
+                                border_radius=8
                             )
-                            # --- 修正結束 ---
-                            
                         ],
                         spacing=10
                     )

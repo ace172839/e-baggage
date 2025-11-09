@@ -278,7 +278,7 @@ def build_instant_booking_confirm_view(app_instance: 'App') -> ft.View:
             "id": new_order_id,
             "date": datetime.now().strftime("%Y/%m/%d"),
             "pickup": pickup if pickup else "台北101",
-            "dropof": dropoff if dropoff else "板橋車站",
+            "dropof": dropoff if dropoff else "圓山大飯店",
             "amount": amount if amount else "250",
             "luggages": luggages if luggages else "5"
         }
@@ -289,20 +289,15 @@ def build_instant_booking_confirm_view(app_instance: 'App') -> ft.View:
 
     pickup_name = "台北101"
     pickup_coords = LOCATION_TAIPEI_101
-    dropoff_name = "板橋車站"
-    dropoff_coords = LOCATION_BANQIAO_STATION
-    
-    calculated_zoom = calculate_zoom_level(
-        pickup_coords[0], pickup_coords[1],
-        dropoff_coords[0], dropoff_coords[1]
-    )
+    dropoff_name = "圓山大飯店"
+    dropoff_coords = LOCATION_GRAND_HOTEL
 
     confirm_map = map.Map(
         expand=True,
-        initial_zoom=calculated_zoom,
+        initial_zoom=12,
         initial_center=map.MapLatitudeLongitude(
-            (pickup_coords[0] + dropoff_coords[0]) / 2,
-            (pickup_coords[1] + dropoff_coords[1]) / 2
+            latitude=(pickup_coords[0] + dropoff_coords[0]) / 2,
+            longitude=(pickup_coords[1] + dropoff_coords[1]) / 2
         ),
         layers=[
             map.TileLayer(url_template=USER_DASHBOARD_MAP_TEMPLATE),
@@ -321,8 +316,8 @@ def build_instant_booking_confirm_view(app_instance: 'App') -> ft.View:
             map.PolylineLayer(
                 polylines=[
                     map.PolylineMarker(
-                        coordinates=[map.MapLatitudeLongitude(coord[1], coord[0]) for coord in MAP_ROUTING_101_BANQIAO["routes"][0]["geometry"]["coordinates"]],
-                        color=ft.Colors.BLACK38,
+                        coordinates=[map.MapLatitudeLongitude(coord[1], coord[0]) for coord in MAP_ROUTING_101_GRAND_HOTEL["routes"][0]["geometry"]["coordinates"]],
+                        color=ft.Colors.BLUE,
                         stroke_width=5
                     )
                 ]
@@ -385,12 +380,13 @@ def build_instant_booking_confirm_view(app_instance: 'App') -> ft.View:
         floating_action_button=build_ai_fab(app_instance),
         appbar=ft.AppBar(
             title=ft.Text("確認您的行程"),
+            bgcolor=COLOR_BRAND_YELLOW,
             leading=ft.IconButton(icon=ft.Icons.ARROW_BACK, on_click=lambda _: app_instance.page.page.go("/app/user/booking_instant")),
         ),
         controls=[
-            ft.Stack(
+            ft.Column(
                 controls=[
-                    ft.Container(content=confirm_map, expand=True, margin=ft.margin.only(bottom=260)),
+                    ft.Container(content=confirm_map, expand=True),
                     ft.Container(content=info_card, alignment=ft.alignment.bottom_center)
                 ],
                 expand=True

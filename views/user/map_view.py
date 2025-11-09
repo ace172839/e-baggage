@@ -250,6 +250,7 @@ def build_map_view(app_instance: 'App', view: ft.View) -> ft.View:
             label="搜尋地點...",
             on_submit=on_search_click, # 確保 on_submit 也綁定
             border=ft.InputBorder.NONE,
+            color=COLOR_TEXT_DARK
         ),
         actions=[
             # --- 4. 新增：載入中圓圈 ---
