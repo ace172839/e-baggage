@@ -103,6 +103,9 @@ class App:
         self.animation_timer = None # 用於 user_animation
         self.animation_step = 0 
 
+        self.hotel_baggages = 63
+        self.hotel_not_arrived_customer = 27
+
 
     def main(self, page: ft.Page):
         self.page = page
@@ -549,7 +552,8 @@ class App:
                 
                 if self.driver_marker_ref.current:
                     self.driver_marker_ref.current.coordinates = map.MapLatitudeLongitude(current_lat, current_lon)
-                    self.page.update()
+                self.map_ref.current.center_on(map.MapLatitudeLongitude(current_lat, current_lon), 16)
+                self.page.update()
 
                 threading.Timer(time_per_step, lambda: animate_step(i + 1)).start()
 
@@ -577,7 +581,7 @@ class App:
                 return
 
             num_points = len(animation_points)
-            total_duration_sec = 8.0 
+            total_duration_sec = 20.0 
             time_per_step = total_duration_sec / num_points
             
             final_lat_lon = animation_points[-1]
@@ -618,7 +622,8 @@ class App:
                 
                 if self.driver_marker_ref.current:
                     self.driver_marker_ref.current.coordinates = map.MapLatitudeLongitude(current_lat, current_lon)
-                    self.page.update()
+                self.map_ref.current.center_on(map.MapLatitudeLongitude(current_lat, current_lon), 16)
+                self.page.update()
 
                 threading.Timer(time_per_step, lambda: animate_step(i + 1)).start()
 
@@ -633,22 +638,80 @@ class App:
         logger.info("準備顯示抵達彈窗...")
         
         def show_dialog():
-            
-            dialog = ft.AlertDialog(
-                modal=True,
-                title=ft.Text("行程結束"),
-                content=ft.Text("您的行李已被送達目的地。"),
-                actions=[
+            scan_result_text = ""
+            # (假設 SCAN_RESULT_LSIT 已經在 config.py 或 constants.py 中定義)
+            try:
+                for baggage in SCAN_RESULT_LSIT:
+                    scan_result_text += f"{baggage['size']}吋{baggage['color']}{baggage['type']} {baggage['quantity']} 件\n"
+                scan_result_amount = len(SCAN_RESULT_LSIT)
+            except NameError:
+                logger.error("SCAN_RESULT_LSIT 未定義")
+                scan_result_text = "行李資訊讀取失敗"
+                scan_result_amount = 0
+
+            # --- ↓↓↓ 1. (重要) 先宣告 dialog 變數，以便內部函式可以存取 ---
+            dialog = ft.AlertDialog() 
+
+            # --- 2. 建立一個函式，用於顯示第二階段的 "Check-in" 彈窗 ---
+            def show_checkin_confirmation(d: ft.AlertDialog):
+                logger.info("顯示 Check-in 確認彈窗")
+                d.title = ft.Text("Check-in 成功")
+                d.content = ft.Column(
+                    [
+                        ft.Text("圓山大飯店 已為您自動 check-in"),
+                        ft.Icon(ft.Icons.CHECK_CIRCLE, color=ft.Colors.GREEN, size=60)
+                    ],
+                    # (為 Column 設定固定高度，避免彈窗大小劇烈變化)
+                    height=100, 
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    alignment=ft.MainAxisAlignment.CENTER
+                )
+                d.actions = [
                     ft.TextButton(
-                        "確認", 
-                        on_click=lambda e: self.page.close(dialog), 
+                        "完成",
+                        on_click=lambda e: self.page.close(d), # 點擊 "完成" 只關閉彈窗
                         style=ft.ButtonStyle(color=ft.Colors.GREEN)
                     )
+                ]
+                d.actions_alignment=ft.MainAxisAlignment.CENTER
+                # (on_dismiss 事件保持不變，仍會導航回 dashboard)
+                d.update() # 刷新同一個彈窗的內容
+
+            # --- 3. 設定 dialog 變數的屬性 (第一階段) ---
+            dialog.modal = True
+            dialog.title = ft.Text("行程結束")
+            dialog.content = ft.Column(
+                controls=[
+                    ft.Text("您的行李已被送達目的地。", color=ft.Colors.WHITE), # (使用恆量)
+                    ft.Text(scan_result_text, color=ft.Colors.WHITE),
+                    ft.Text(f"總共 {scan_result_amount} 件行李送達。", color=ft.Colors.WHITE),
+                    ft.Image(
+                        # (假設 'baggages_hotel.jpg' 拼字正確且存在於 assets/images/)
+                        src="images/baggages_hotel.jpg", 
+                        width=230,
+                        fit=ft.ImageFit.CONTAIN
+                    ),
                 ],
-                actions_alignment=ft.MainAxisAlignment.END,
-                on_dismiss=lambda e: self._navigate_after_dialog_close("/app/user/dashboard") 
+                alignment=ft.alignment.center,
+                scroll=ft.ScrollMode.ADAPTIVE, # (使用 scroll 替代 expand)
+                height=350 # (設定一個固定高度)
             )
+            dialog.actions = [
+                ft.TextButton(
+                    "聯繫客服", 
+                    on_click=lambda e: self.page.close(dialog), # 點擊只關閉
+                    style=ft.ButtonStyle(color=ft.Colors.RED)
+                ),
+                ft.TextButton(
+                    "確認無誤", 
+                    on_click=lambda e: show_checkin_confirmation(dialog), # <-- 呼叫切換函式
+                    style=ft.ButtonStyle(color=ft.Colors.GREEN)
+                )
+            ]
+            dialog.actions_alignment = ft.MainAxisAlignment.END
+            dialog.on_dismiss = lambda e: self._navigate_after_dialog_close("/app/user/dashboard")
             
+            # --- 4. 打開第一階段的彈窗 ---
             self.page.open(dialog) 
             logger.info("抵達彈窗已顯示。")
 
@@ -745,7 +808,8 @@ class App:
                 
                 if self.driver_marker_ref.current:
                     self.driver_marker_ref.current.coordinates = map.MapLatitudeLongitude(current_lat, current_lon)
-                    self.page.update()
+                self.map_ref.current.center_on(map.MapLatitudeLongitude(current_lat, current_lon), 16)
+                self.page.update()
 
                 if self.animation_running: 
                     threading.Timer(time_per_step, lambda: animate_step(i + 1)).start()

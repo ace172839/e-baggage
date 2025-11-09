@@ -41,17 +41,24 @@ def build_hotel_view(app_instance: 'App') -> ft.View:
 
     return ft.View(
         route="/app/user/hotel",
-        bgcolor=ft.Colors.BLACK,
+        bgcolor=COLOR_BG_LIGHT_TAN,
         appbar=ft.AppBar(
             title=ft.Text("圓山大飯店", color=ft.Colors.BLACK), 
             bgcolor=COLOR_BRAND_YELLOW, 
         ),
         controls=[
-            ft.Image(
-                src=f"images/hotel.jpg", 
-                fit=ft.ImageFit.COVER,
-                width=WINDOW_WIDTH,
-                opacity=0.7
+            ft.Column(
+                controls=[
+                    ft.Image(
+                        src=f"images/hotel.jpg", 
+                        fit=ft.ImageFit.COVER,
+                        width=WINDOW_WIDTH,
+                        opacity=0.7
+                    ),
+                    ft.Text(f"當前行李容量： {app_instance.hotel_baggages} 件 / 180 件", size=20, weight=ft.FontWeight.BOLD, color=ft.Colors.BLACK),
+                    ft.Text(f"當前尚未抵達旅客： {app_instance.hotel_not_arrived_customer} 組", size=20, weight=ft.FontWeight.BOLD, color=ft.Colors.BLACK)
+                ],
+                
             ),
             ft.NavigationBar(
                 selected_index=2,
@@ -103,7 +110,7 @@ def build_scan_view(app_instance: 'App') -> ft.View:
             ft.Stack(
                 controls=[
                     ft.Image(
-                        src=f"images/baggages.jpg", 
+                        src=f"images/baggages_hotel.jpg", 
                         fit=ft.ImageFit.COVER,
                         width=WINDOW_WIDTH,
                         opacity=0.7
@@ -142,6 +149,8 @@ def build_scan_results_view(app_instance: 'App') -> ft.View:
     for baggage in SCAN_RESULT_LSIT:
         scan_result_text += f"{baggage['size']}吋{baggage['color']}{baggage['type']} {baggage['quantity']} 件\n"
     app_instance.scan_results = len(SCAN_RESULT_LSIT)
+    app_instance.hotel_baggages += 5
+    app_instance.hotel_not_arrived_customer += 1
     
     return ft.View(
         route="/app/hotel/scan_results",
@@ -160,7 +169,7 @@ def build_scan_results_view(app_instance: 'App') -> ft.View:
                 controls=[
                     ft.Container(
                         content=ft.Image(
-                            src=f"images/baggages.jpg", 
+                            src=f"images/baggages_hotel.jpg", 
                             fit=ft.ImageFit.CONTAIN,
                             width=WINDOW_WIDTH,
                             height=WINDOW_HEIGHT * 0.6,
@@ -195,7 +204,7 @@ def build_scan_results_view(app_instance: 'App') -> ft.View:
                                             height=50,
                                             bgcolor=ft.Colors.GREEN_100,
                                             color=ft.Colors.GREEN_800,
-                                            on_click=lambda _: app_instance.page.go("/splash/user2"),
+                                            on_click=lambda _: app_instance.page.go("/app/hotel"),
                                             expand=True,
                                         )
                                     ]
