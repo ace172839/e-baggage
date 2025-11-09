@@ -60,17 +60,14 @@ def show_plan_trip_options(bs: ft.BottomSheet):
                 ft.Text("請選擇您想要的行程長度：", size=16, weight=ft.FontWeight.BOLD, color=COLOR_TEXT_DARK),
                 ft.ListTile(
                     title=ft.Text("1-2 小時短行程", size=12, color=COLOR_TEXT_DARK),
-                    leading=ft.Icon(ft.Icons.TIMER_3_SELECT),
                     on_click=lambda _: show_trip_details(bs, "short")
                 ),
                 ft.ListTile(
                     title=ft.Text("3-4 小時半日行程", size=12, color=COLOR_TEXT_DARK),
-                    leading=ft.Icon(ft.Icons.TIMER_10_SELECT),
                     on_click=lambda _: show_trip_details(bs, "half")
                 ),
                 ft.ListTile(
                     title=ft.Text("6 小時以上整日行程", size=12, color=COLOR_TEXT_DARK),
-                    leading=ft.Icon(ft.Icons.TIMER_OFF),
                     on_click=lambda _: show_trip_details(bs, "all")
                 ),
                 ft.Divider(height=10),
