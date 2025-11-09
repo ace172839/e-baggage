@@ -6,7 +6,8 @@ import flet as ft
 from typing import TYPE_CHECKING
 from config import *
 from constants import *
-from views.common_components import build_bottom_nav_bar # 【新增】 匯入
+from views.common.navigator import build_bottom_nav_bar
+from views.common.assistant import build_ai_fab
 
 if TYPE_CHECKING:
     from main import App
@@ -28,6 +29,7 @@ def build_support_view(app_instance: 'App') -> ft.View:
     return ft.View(
         route="/app/user/support",
         padding=0,
+        floating_action_button=build_ai_fab(app_instance),
         controls=[
             # 內容區域
             ft.Container(

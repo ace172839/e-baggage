@@ -1,3 +1,4 @@
+import flet as ft
 import logging
 from typing import TYPE_CHECKING
 
@@ -40,10 +41,13 @@ def create_route_handler(app_instance: 'App'):
         這是真正的路由處理常式。
         它可以透過「閉包」存取外層的 app_instance。
         """
-        page = app_instance.page # 從 app_instance 取得 page
-        
-        page.views.clear()
+        page = app_instance.page
         logger.info(f"Navigating to route: {page.route}")
+        
+        if page.route == "/app/user/map" or page.route == "/app/user/booking_instant":
+            page.update()
+        else:
+            page.views.clear()
         
         # --- 路由 1: 啟動畫面 ---
         if page.route == "/splash":
@@ -84,9 +88,10 @@ def create_route_handler(app_instance: 'App'):
         elif page.route == "/app/user/scan_results":
             page.views.append(build_scan_results_view(app_instance))
         elif page.route == "/app/user/history":
-            page.views.append(history_view(app_instance.page))
-        elif page.route == "/app/user/map":
-            page.views.append(build_map_view(app_instance))
+            page.views.append(history_view(app_instance))
+        elif page.route.startswith("/app/user/map/"):
+            map_target_view = ft.View(route=page.route)
+            page.views.append(build_map_view(app_instance, map_target_view))
         elif page.route == "/app/user/current_order":
             page.views.append(build_user_tracking_view(app_instance))
             app_instance.start_user_animation()

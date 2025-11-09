@@ -3,7 +3,8 @@ import random
 from typing import TYPE_CHECKING
 from config import USER_DASHBOARD_IMAGE, USER_DASHBOARD_MARQUEE_MESSAGES
 from constants import *
-from views.common_components import build_bottom_nav_bar
+from views.common.navigator import build_bottom_nav_bar
+from views.common.assistant import build_ai_fab
 
 if TYPE_CHECKING:
     from main import App
@@ -55,6 +56,7 @@ def build_dashboard_view(app_instance: 'App') -> ft.View:
     return ft.View(
         route="/app/user/dashboard",
         padding=0,
+        floating_action_button=build_ai_fab(app_instance),
         controls=[
             # 內容區域
             ft.Container(

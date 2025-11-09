@@ -92,12 +92,12 @@ class App:
                 primary=ft.Colors.BLACK,                    # 登入畫面的 icon，被選中的文字
                 on_primary=ft.Colors.WHITE,
                 primary_container=ft.Colors.BLUE,
-                on_primary_container=ft.Colors.GREEN,
-                secondary_container=COLOR_BG_DARK_GOLD,        # selected_navigator_bar container
+                on_primary_container=ft.Colors.LIGHT_BLUE,
+                secondary_container=ft.Colors.BLUE_GREY_700,        # selected_navigator_bar container
                 on_secondary_container=ft.Colors.WHITE,     # selected_navigator_bar icon
                 on_surface=ft.Colors.BLACK,                   # selected_navigator_bar的文字
                 on_surface_variant=ft.Colors.GREY_500,      # 未被選中的 TextField, navigator_bar的文字
-                surface_container_low=ft.Colors.ORANGE_300,     # 產生驗證碼bg
+                surface_container_low=COLOR_BG_LIGHT_TAN,     # 產生驗證碼bg
             ),
             
             # --- 其他 Theme (保持不變) ---
@@ -263,12 +263,12 @@ class App:
         self.page.update()
 
     def handle_select_location_pickup(self, e):
-        logger.info("Navigating to map selection for pickup")
-        self.page.go("/app/user/select_pickup")
+        logger.info("導航到地圖選擇 (即時預約 - 上車地點)")
+        self.page.go("/app/user/map/instant_pickup")
 
     def handle_select_location_dropoff(self, e):
-        logger.info("Navigating to map selection for dropoff")
-        self.page.go("/app/user/select_dropoff")
+        logger.info("導航到地圖選擇 (即時預約 - 下車地點)")
+        self.page.go("/app/user/map/instant_dropoff")
 
     def handle_search_location(self, e):
         
@@ -592,8 +592,7 @@ class App:
                     
                     if self.map_ref.current:
                         # 將地圖中心設置為動畫的確切終點
-                        self.map_ref.current.center = final_map_coords
-                        self.map_ref.current.zoom = 14 # 您可以調整縮放等級
+                        self.map_ref.current.center_on(final_map_coords, 14)
                     
                     if self.polyline_layer_ref.current:
                         # 更新路線

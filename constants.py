@@ -1,5 +1,5 @@
 COLOR_BG_DARK_GOLD = "#c69b68"  # 啟動畫面/登入頁背景
-COLOR_BG_LIGHT_TAN = "#F0E6D2"  # 角色選擇/登入卡片
+COLOR_BG_LIGHT_TAN = "#EDDBB6"  # 角色選擇/登入卡片
 COLOR_BRAND_YELLOW = "#F0B90B"  # 按鈕、Logo
 COLOR_TEXT_DARK = "#333333"
 COLOR_BACKGROUD_YELLOW = "#feda62"

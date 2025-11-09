@@ -2,6 +2,7 @@ import flet as ft
 import threading
 import time
 import random
+from views.common.assistant import build_ai_fab
 
 class CurrentOrderView():
     def __init__(self, page: ft.Page):

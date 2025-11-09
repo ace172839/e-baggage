@@ -6,7 +6,7 @@ import flet as ft
 from typing import TYPE_CHECKING
 from config import *
 from constants import *
-from views.common_components import build_bottom_nav_bar # 【新增】 匯入
+from views.common.navigator import build_bottom_nav_bar # 【新增】 匯入
 
 if TYPE_CHECKING:
     from main import App

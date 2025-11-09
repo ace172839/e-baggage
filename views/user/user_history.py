@@ -3,7 +3,11 @@ import json
 from datetime import datetime
 from constants import *
 from config import WINDOW_WIDTH
+from views.common.assistant import build_ai_fab
+from typing import TYPE_CHECKING
 
+if TYPE_CHECKING:
+    from main import App
 
 PAGE_SIZE = 5
 
@@ -12,7 +16,7 @@ def get_orders():
         data = json.load(f)
     return data.get('orders', [])
 
-def history_view(page: ft.Page) -> ft.View:
+def history_view(app_instance: 'App') -> ft.View:
     orders = get_orders()
     orders.sort(key=lambda x: datetime.strptime(x['date'], '%Y/%m/%d'), reverse=True)
 
@@ -47,11 +51,11 @@ def history_view(page: ft.Page) -> ft.View:
         next_button.disabled = not can_go_forward
         
         orders_list.controls = order_items
-        if page.route == "/app/user/history":
-            page.update()
+        if app_instance.page.route == "/app/user/history":
+            app_instance.page.update()
 
     def go_back(e):
-        page.go("/app/user/dashboard")
+        app_instance.page.go("/app/user/dashboard")
 
     def go_prev(e):
         nonlocal start_index
@@ -69,6 +73,8 @@ def history_view(page: ft.Page) -> ft.View:
 
     return ft.View(
         route="/app/user/history",
+        padding=0,
+        floating_action_button=build_ai_fab(app_instance),
         controls=[
             ft.Row([back_button, prev_button, next_button], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
             orders_list,

@@ -3,6 +3,7 @@ import flet_map as map
 from typing import TYPE_CHECKING
 from geopy.geocoders import Nominatim
 import logging
+import threading  # <--- 1. 匯入 threading
 
 from config import WINDOW_WIDTH, USER_DASHBOARD_DEFAULT_LOCATION, USER_DASHBOARD_MAP_TEMPLATE
 from constants import *
@@ -22,11 +23,11 @@ def build_map_view(app_instance: 'App', view: ft.View) -> ft.View:
     # --- 1. 從路由解析目標 ---
     try:
         target_key = view.route.split('/')[-1]
-        if target_key not in ["arrival_location", "return_location"]:
+        valid_keys = ["arrival_location", "return_location", "instant_pickup", "instant_dropoff"]
+        if target_key not in valid_keys:
             raise ValueError(f"無效的 target_key: {target_key}")
     except (IndexError, ValueError) as e:
         logger.error(f"從路由 '{view.route}' 解析 target_key 失敗: {e}")
-        # 返回一個錯誤頁面或導航回上一頁
         return ft.View(
             route=view.route,
             controls=[ft.Text("錯誤：無效的地圖路由。")],
@@ -43,6 +44,7 @@ def build_map_view(app_instance: 'App', view: ft.View) -> ft.View:
     map_control_ref = ft.Ref[map.Map]()
     marker_layer_ref = ft.Ref[map.MarkerLayer]()
     search_bar_ref = ft.Ref[ft.TextField]()
+    search_progress_ring_ref = ft.Ref[ft.ProgressRing]() # <--- 2. 新增 Ref
     
     selected_coords = ft.Ref[map.MapLatitudeLongitude]()
     selected_display_name = ft.Ref[str]()
@@ -54,6 +56,7 @@ def build_map_view(app_instance: 'App', view: ft.View) -> ft.View:
             coordinates=coords,
         )
 
+    # update_selection 函式保持不變
     def update_selection(coords: map.MapLatitudeLongitude, display_name: str, update_map_center: bool = False, zoom: float = 16.0):
         logger.info(f"更新地圖選擇: {display_name}")
         selected_coords.current = coords
@@ -68,7 +71,7 @@ def build_map_view(app_instance: 'App', view: ft.View) -> ft.View:
             map_control_ref.current.zoom = zoom
             map_control_ref.current.update()
 
-    # --- 4. 事件處理 ---
+    # on_map_tap 函式保持不變
     def on_map_tap(e: map.MapTapEvent):
         logger.debug(f"地圖點擊: Lat={e.coordinates.latitude}, Lon={e.coordinates.longitude}")
         if not geolocator: return
@@ -84,42 +87,136 @@ def build_map_view(app_instance: 'App', view: ft.View) -> ft.View:
             
         update_selection(coords, display_name, update_map_center=True)
 
-    def on_search_click(e):
-        query = search_bar_ref.current.value
-        if not query or not geolocator: return
-        
-        logger.info(f"正在搜尋: {query}")
+
+    # --- 4. 事件處理 (修改點) ---
+
+    # --- 4a. 新增：背景執行緒函式 ---
+    def search_worker_thread(query_str: str):
+        """
+        在背景執行緒中執行地理編碼，避免 UI 凍結。
+        (這包含了您原本 on_search_click 的主要邏輯)
+        """
+        logger.info(f"[Thread] 正在搜尋: {query_str}")
+        if not geolocator:
+            logger.error("[Thread] Geolocator 未初始化")
+            return
+
         try:
-            location = geolocator.geocode(query, country_codes="TW")
+            # --- 這行是耗時的網路操作 ---
+            location = geolocator.geocode(query_str, country_codes="TW")
+            
             if location:
-                coords = map.MapLatitudeLongitude(location.latitude, location.longitude)
-                update_selection(coords, location.address, update_map_center=True)
+                logger.info(f"[Thread] 找到地點: {location.address}")
+                lat = round(location.latitude, 4)
+                lon = round(location.longitude, 4)
+                coords = map.MapLatitudeLongitude(lat, lon)
+                
+                # --- 更新 Refs (就像您在 main.py 的動畫中所做的) ---
+                selected_coords.current = coords
+                selected_display_name.current = location.address
+                
+                if marker_layer_ref.current:
+                    marker_layer_ref.current.markers = [create_marker(coords)]
+                    marker_layer_ref.current.update()
+                    
+                if map_control_ref.current:
+                    logger.debug(f"[Thread] 更新地圖中心: {coords}")
+                    map_control_ref.current.center_on(coords, 16)
+                    # map_control_ref.current.center = coords
+                    # map_control_ref.current.zoom = 16
+                    map_control_ref.current.update()
+                
+                # --- 隱藏載入中圓圈 ---
+                if search_progress_ring_ref.current:
+                    search_progress_ring_ref.current.visible = False
+                    search_progress_ring_ref.current.update()
+                
             else:
-                app_instance.page.snack_bar = ft.SnackBar(ft.Text(f"找不到地點: {query}"), open=True)
+                logger.warning(f"[Thread] 找不到地點: {query_str}")
+                app_instance.page.snack_bar = ft.SnackBar(ft.Text(f"找不到地點: {query_str}"), open=True)
+                if search_progress_ring_ref.current:
+                    search_progress_ring_ref.current.visible = False
+                    search_progress_ring_ref.current.update()
                 app_instance.page.update()
+                
         except Exception as ex:
-            logger.error(f"地理編碼時發生錯誤: {ex}")
+            logger.error(f"[Thread] 地理編碼時發生錯誤: {ex}")
             app_instance.page.snack_bar = ft.SnackBar(ft.Text("搜尋時發生錯誤"), open=True)
+            if search_progress_ring_ref.current:
+                search_progress_ring_ref.current.visible = False
+                search_progress_ring_ref.current.update()
             app_instance.page.update()
 
-    def on_confirm_click(e):
-        if selected_display_name.current:
-            logger.info(f"確認選擇 for '{target_key}': {selected_display_name.current}")
-            app_instance.booking_data[target_key] = selected_display_name.current
-        else:
-            logger.warning("未選擇任何地點，但按下了確認。")
+    # --- 4b. 修改：原本的 on_search_click ---
+    def on_search_click(e):
+        query = search_bar_ref.current.value
+        if not query or not geolocator: 
+            return
         
-        app_instance.page.go("/app/user/booking_previous")
+        logger.info(f"請求搜尋: {query}")
+        
+        # 立即顯示載入指示器
+        if search_progress_ring_ref.current:
+            search_progress_ring_ref.current.visible = True
+            search_progress_ring_ref.current.update()
+        
+        # 在新執行緒中啟動搜尋，避免凍結
+        threading.Thread(
+            target=search_worker_thread,
+            args=(query,), # 將 query 作為參數傳遞
+            daemon=True   # 確保 App 關閉時執行緒也會關閉
+        ).start()
+
+    # on_confirm_click 和 on_cancel_click 保持不變
+    def on_confirm_click(e):
+        if not selected_display_name.current:
+            logger.warning("未選擇任何地點，但按下了確認。")
+            if target_key in ["instant_pickup", "instant_dropoff"]:
+                app_instance.page.go("/app/user/booking_instant")
+            else:
+                app_instance.page.go("/app/user/booking_previous")
+            return
+
+        logger.info(f"確認選擇 for '{target_key}': {selected_display_name.current}")
+        
+        if target_key == "instant_pickup":
+            if app_instance.pickup_location_ref.current:
+                app_instance.pickup_location_ref.current.value = selected_display_name.current
+            app_instance.page.go("/app/user/booking_instant")
+        
+        elif target_key == "instant_dropoff":
+            if app_instance.dropoff_location_ref.current:
+                app_instance.dropoff_location_ref.current.value = selected_display_name.current
+            app_instance.page.go("/app/user/booking_instant")
+        
+        elif target_key in ["arrival_location", "return_location"]:
+            app_instance.booking_data[target_key] = selected_display_name.current
+            app_instance.page.go("/app/user/booking_previous")
+        
+        else:
+            logger.error(f"on_confirm_click 遇到未處理的 target_key: {target_key}")
+            app_instance.page.go_back()
 
     def on_cancel_click(e):
-        app_instance.page.go("/app/user/booking_previous")
+        if target_key in ["instant_pickup", "instant_dropoff"]:
+            app_instance.page.go("/app/user/booking_instant")
+        else:
+            app_instance.page.go("/app/user/booking_previous")
 
     # --- 5. 建立控制項 ---
     initial_center = USER_DASHBOARD_DEFAULT_LOCATION
     initial_marker = []
     
-    # 檢查 booking_data 中是否有此 target_key 的現有值
-    existing_location = app_instance.booking_data.get(target_key)
+    existing_location = None
+    if target_key == "instant_pickup":
+        if app_instance.pickup_location_ref.current:
+            existing_location = app_instance.pickup_location_ref.current.value
+    elif target_key == "instant_dropoff":
+        if app_instance.dropoff_location_ref.current:
+            existing_location = app_instance.dropoff_location_ref.current.value
+    elif target_key in ["arrival_location", "return_location"]:
+        existing_location = app_instance.booking_data.get(target_key)
+
     if existing_location and geolocator:
         try:
             location = geolocator.geocode(existing_location, country_codes="TW")
@@ -127,7 +224,6 @@ def build_map_view(app_instance: 'App', view: ft.View) -> ft.View:
                 initial_center = (location.latitude, location.longitude)
                 coords = map.MapLatitudeLongitude(location.latitude, location.longitude)
                 initial_marker = [create_marker(coords)]
-                # 同時預先填入選擇狀態
                 selected_coords.current = coords
                 selected_display_name.current = location.address
         except Exception as e:
@@ -145,17 +241,31 @@ def build_map_view(app_instance: 'App', view: ft.View) -> ft.View:
         ],
     )
 
-    # --- 6. 組合 View ---
+    # --- 6. 組合 View (修改點) ---
     view.padding = 0
     view.appbar = ft.AppBar(
         leading=ft.IconButton(icon=ft.Icons.ARROW_BACK, on_click=on_cancel_click),
         title=ft.TextField(
             ref=search_bar_ref,
             label="搜尋地點...",
-            on_submit=on_search_click,
+            on_submit=on_search_click, # 確保 on_submit 也綁定
             border=ft.InputBorder.NONE,
         ),
-        actions=[ft.IconButton(icon=ft.Icons.SEARCH, on_click=on_search_click)],
+        actions=[
+            # --- 4. 新增：載入中圓圈 ---
+            ft.Container(
+                content=ft.ProgressRing(
+                    ref=search_progress_ring_ref,
+                    visible=False,
+                    width=20,
+                    height=20,
+                    stroke_width=2.5,
+                    color=COLOR_BRAND_YELLOW # 給它一個顏色
+                ),
+                padding=ft.padding.only(right=15, top=12) # 調整一下位置
+            ),
+            ft.IconButton(icon=ft.Icons.SEARCH, on_click=on_search_click)
+        ],
         bgcolor=ft.Colors.WHITE
     )
     view.controls = [

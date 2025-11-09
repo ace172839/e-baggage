@@ -85,7 +85,8 @@ def build_login_view(app_instance: 'App', role: str) -> ft.View:
                                             text="重產識別碼",
                                             color=ft.Colors.WHITE,
                                             height=40,
-                                            on_click=app_instance.login_view_handle_regenerate_captcha
+                                            on_click=app_instance.login_view_handle_regenerate_captcha,
+                                            bgcolor=ft.Colors.GREY_500
                                         ),
                                         ft.Container(
                                             content=ft.Text(

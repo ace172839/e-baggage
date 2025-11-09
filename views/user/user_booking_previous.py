@@ -5,7 +5,8 @@ import logging
 
 from config import PREVIOUS_BOOKING_LIST
 from constants import *
-from views.common_components import build_bottom_nav_bar
+from views.common.navigator import build_bottom_nav_bar
+from views.common.assistant import build_ai_fab
 
 if TYPE_CHECKING:
     from main import App
@@ -33,6 +34,7 @@ def build_previous_booking_view(app_instance: 'App') -> ft.Control:
     view = ft.View(
         route="/app/user/booking_previous",
         padding=0,
+        floating_action_button=build_ai_fab(app_instance),
         controls=[
             ft.Container(
                 content=ft.Column(
@@ -174,6 +176,7 @@ def build_previous_booking_confirm_view(app_instance: 'App') -> ft.Control:
     return ft.View(
         route="/app/user/booking_previous_confirm",
         padding=0,
+        floating_action_button=build_ai_fab(app_instance),
         controls=[
             page_content,
             build_bottom_nav_bar(app_instance, selected_index=3)
