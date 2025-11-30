@@ -8,19 +8,20 @@ import json
 import threading
 
 from constants import *
-# (注意：這假設您的 config.py 已經被更新)
 from config import *
 
-# --- 匯入新的 config 變數 ---
-from config import (
-    LOCATION_TAIPEI_101, 
-    LOCATION_GRAND_HOTEL, 
-    MAP_ROUTING_101_GRAND_HOTEL,
-    MAP_ROUTING_CITYHALL_101, # (這個 driver 路線保持不變)
-    USER_DASHBOARD_MAP_TEMPLATE,
+# --- MVC 匯入 ---
+from controllers import (
+    UserController,
+    DriverController,
+    HotelController,
+    OrderController,
+    InstantBookingController,
+    PreviousBookingController,
+    HistoryController,
+    VehicleSelectionController,
 )
-
-# --- 恢復原始的 router 匯入 ---
+from services import MapService, AnimationService
 from app.router import create_route_handler
 
 
@@ -49,6 +50,19 @@ class App:
         self.page = None
         self.mode = mode
 
+        # --- MVC Controllers ---
+        # 在 main() 中初始化，因為需要 page 實例
+        self.user_controller = None
+        self.driver_controller = None
+        self.hotel_controller = None
+        self.order_controller = None
+        
+        # --- Booking Controllers ---
+        self.instant_booking_controller = None
+        self.previous_booking_controller = None
+        self.history_controller = None
+        self.vehicle_selection_controller = None
+
         # --- 登入 Refs ---
         self.login_username = ft.Ref[ft.TextField]()
         self.login_password = ft.Ref[ft.TextField]()
@@ -62,6 +76,7 @@ class App:
         self.return_date_ref = ft.Ref[ft.TextField]()
         self.pickup_location_ref = ft.Ref[ft.TextField]()
         self.dropoff_location_ref = ft.Ref[ft.TextField]()
+        self.luggage_note_ref = ft.Ref[ft.TextField]()  # 行李備注
         
         # --- 事先預約 Refs (從您上傳的程式碼恢復) ---
         self.prev_arrival_date_ref = ft.Ref[ft.TextField]()
@@ -111,6 +126,18 @@ class App:
         self.page = page
         self.page.title = "e-baggage"
 
+        # --- 初始化 Controllers ---
+        self.user_controller = UserController(self)
+        self.driver_controller = DriverController(self)
+        self.hotel_controller = HotelController(self)
+        self.order_controller = OrderController(self)
+        
+        # --- 初始化 Booking Controllers ---
+        self.instant_booking_controller = InstantBookingController(self)
+        self.previous_booking_controller = PreviousBookingController(self)
+        self.history_controller = HistoryController(self)
+        self.vehicle_selection_controller = VehicleSelectionController(self)
+
         self.page.window.width = WINDOW_WIDTH
         self.page.window.height = WINDOW_HEIGHT
         self.page.window.resizable = False
@@ -124,14 +151,14 @@ class App:
 
             color_scheme=ft.ColorScheme(
                 primary=ft.Colors.BLACK,
-                on_primary=ft.Colors.WHITE,
-                primary_container=ft.Colors.BLUE,
-                on_primary_container=ft.Colors.LIGHT_BLUE,
-                secondary_container=ft.Colors.BLUE_GREY_700,
-                on_secondary_container=ft.Colors.WHITE,
-                on_surface=ft.Colors.BLACK,
-                on_surface_variant=ft.Colors.GREY_500,
-                surface_container_low=COLOR_BG_LIGHT_TAN,
+                # on_primary=ft.Colors.WHITE,
+                # primary_container=ft.Colors.BLUE,
+                # on_primary_container=ft.Colors.LIGHT_BLUE,
+                # secondary_container=ft.Colors.BLUE_GREY_700,
+                # on_secondary_container=ft.Colors.WHITE,
+                # on_surface=ft.Colors.BLACK,
+                # on_surface_variant=ft.Colors.GREY_500,
+                # surface_container_low=COLOR_BG_LIGHT_TAN,
             ),
             
             date_picker_theme=ft.DatePickerTheme(
@@ -168,16 +195,14 @@ class App:
             self.page.update()
 
     def login_view_handle_login(self, e, role: str):
-        if self.mode == "debug":
-            logger.warning("在偵錯模式下登入，已跳過驗證。")
-            self.page.session.set("logged_in", True)
-            self.page.session.set("role", role)
-            self.page.session.set("email", self.login_username.current.value or "demo@user.com")
-            
-            self.page.go(f"/app/{role}")
-            return
+        email = self.login_username.current.value or "demo@user.com"
+        password = self.login_password.current.value or ""
         
-        logger.info("正式模式登入驗證 (未實作)")
+        # 使用 Controller 處理登入
+        if self.user_controller.login(email, password, role):
+            self.page.go(f"/app/{role}")
+        else:
+            self._show_login_error("登入失敗，請檢查帳號密碼")
 
         
     # === Demo 流程 Handlers ===
@@ -186,29 +211,11 @@ class App:
         """
         處理「底部導航列」的點擊事件
         """
-        selected_index = int(e.data) 
+        selected_index = int(e.data)
         
-        if self.search_bar_ref.current:
-            self.search_bar_ref.current.visible = False
-
-        if selected_index == 0:
-            logger.info("導航到「更多」頁面")
-            self.page.go("/app/user/more")
-        elif selected_index == 1:
-            logger.info("導航到「即時預約」Demo 頁面")
-            self.page.go("/app/user/booking_instant") 
-        elif selected_index == 2:
-            logger.info("導航到「首頁」儀表板")
-            self.page.go("/app/user/dashboard")
-        elif selected_index == 3:
-            logger.info("導航到「事先預約」頁面")
-            self.page.go("/app/user/booking_previous")
-        elif selected_index == 4:
-            logger.info("導航到「客服」頁面")
-            self.page.go("/app/user/support")
-        else:
-            logger.error(f"未知的導航索引: {selected_index}")
-            self.page.go("/app/user/dashboard") 
+        # 使用 Controller 處理導航
+        route = self.user_controller.handle_navigation(selected_index)
+        self.page.go(route) 
     
 
     def _update_map_location(self, coords: tuple, location_name: str, mode: str):
@@ -356,33 +363,44 @@ class App:
         
         logger.info("Scan confirmed")
         self.scan_confirmed = True
-        self.page.go("/app/user/booking_instant")
+        # 同步到 InstantBookingController
+        if self.instant_booking_controller:
+            self.instant_booking_controller.scan_confirmed = True
+            logger.info("已同步掃描狀態到 InstantBookingController")
+        self.page.go("/app/user/instant_booking")
 
     def handle_order_cancel(self, e):
         
-        logger.info("Order confirmation cancelled")
-        self.page.go("/app/user/booking_instant")
+        # 使用 Controller 取消訂單
+        self.order_controller.cancel_order()
+        self.page.go("/app/user/instant_booking")
 
     def handle_order_confirm(self, e):
         
         logger.info("Order confirmed! Booking successful.")
         
-        success_dialog = ft.AlertDialog(
-            modal=True,
-            title=ft.Text("預約成功！"),
-            content=ft.Text("正在為您尋找司機..."),
-            actions=[
-                ft.TextButton(
-                    "確認", 
-                    on_click=lambda e: self.page.close(success_dialog), 
-                    style=ft.ButtonStyle(color=ft.Colors.GREEN)
-                )
-            ],
-            actions_alignment=ft.MainAxisAlignment.END,
-            on_dismiss=lambda e: self._navigate_after_dialog_close("/app/driver", "driver")
-        )
-        
-        self.page.open(success_dialog)
+        # 使用 Controller 確認訂單
+        if self.order_controller.confirm_order():
+            success_dialog = ft.AlertDialog(
+                modal=True,
+                title=ft.Text("預約成功！"),
+                content=ft.Text("正在為您尋找司機..."),
+                actions=[
+                    ft.TextButton(
+                        "確認", 
+                        on_click=lambda e: self.page.close(success_dialog), 
+                        style=ft.ButtonStyle(color=ft.Colors.GREEN)
+                    )
+                ],
+                actions_alignment=ft.MainAxisAlignment.END,
+                on_dismiss=lambda e: self._navigate_after_dialog_close("/app/driver", "driver")
+            )
+            
+            self.page.open(success_dialog)
+        else:
+            logger.error("訂單確認失敗")
+            self.page.snack_bar = ft.SnackBar(ft.Text("訂單確認失敗"), open=True)
+            self.page.update()
 
     def _navigate_after_dialog_close(self, route: str, role: str = None):
         """

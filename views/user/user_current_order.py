@@ -1,14 +1,15 @@
 import flet as ft
 import threading
 import time
-import random
 from views.common.assistant import build_ai_fab
+from services import SimulationService
 
 class CurrentOrderView():
     def __init__(self, page: ft.Page):
         super().__init__(expand=True)
         self.page = page
         self.running = False
+        self.simulation_service = SimulationService()
         
         # 汽車圖示
         self.car_icon = ft.Icon(
@@ -41,14 +42,17 @@ class CurrentOrderView():
             height=page.height * 0.6
         )
         
+        # 使用 SimulationService 生成司機資訊
+        driver_data = self.simulation_service.generate_driver_info()
+        
         # 司機資訊
         self.driver_info = ft.Container(
             content=ft.Column(
                 [
-                    ft.Text("司機姓名：王小明", size=18, weight=ft.FontWeight.BOLD),
-                    ft.Text("車牌號碼：ABC-1234", size=16),
-                    ft.Text("司機手機：0912345678", size=16),
-                    ft.Text("預估抵達：50分鐘", size=16, color=ft.Colors.BLUE_600),
+                    ft.Text(f"司機姓名：{driver_data['name']}", size=18, weight=ft.FontWeight.BOLD),
+                    ft.Text(f"車牌號碼：{driver_data['license_plate']}", size=16),
+                    ft.Text(f"司機手機：{driver_data['phone']}", size=16),
+                    ft.Text(f"預估抵達：{driver_data['estimated_arrival']}", size=16, color=ft.Colors.BLUE_600),
                 ],
                 spacing=10
             ),
@@ -84,14 +88,12 @@ class CurrentOrderView():
             if not self.running:
                 break
             
-            # 隨機往前移動
-            new_left = (self.car_icon.left or 50) + random.randint(10, 30)
-            new_top = (self.car_icon.top or 50) + random.randint(5, 15)
-            
-            if new_left > max_left:
-                new_left = 50
-            if new_top > max_top:
-                new_top = 50
+            # 使用 SimulationService 計算新位置
+            current_left = self.car_icon.left or 50
+            current_top = self.car_icon.top or 50
+            new_left, new_top = self.simulation_service.calculate_next_position(
+                current_left, current_top, max_left, max_top
+            )
                 
             self.car_icon.left = new_left
             self.car_icon.top = new_top

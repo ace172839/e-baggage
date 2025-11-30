@@ -9,5 +9,6 @@ appdirs
 flet
 flet-map
 flet-geolocator
+requests
 pyinstaller
 geopy

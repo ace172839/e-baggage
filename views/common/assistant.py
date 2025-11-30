@@ -1,7 +1,7 @@
 import flet as ft
 from typing import TYPE_CHECKING
 from constants import *
-import json
+from services import BookingService
 import random
 import logging
 
@@ -11,18 +11,7 @@ if TYPE_CHECKING:
 # 獲取 logger
 logger = logging.getLogger(__name__)
 
-DEMO_DB_PATH = "demo_db.json"
-
 # --- 1. 資料處理輔助函式 ---
-
-def load_recommendations() -> list:
-    """ 從 demo_db.json 載入推薦資料 """
-    try:
-        with open(DEMO_DB_PATH, 'r', encoding='utf-8') as f:
-            db_data = json.load(f)
-        return db_data.get('recommendations', [])
-    except (FileNotFoundError, json.JSONDecodeError):
-        return []
 
 def apply_filters(recommendations: list, filters: dict) -> list:
     """ 根據篩選器過濾景點 """
@@ -77,7 +66,8 @@ def show_filter_results_view(bs: ft.BottomSheet, app_instance: 'App'):
     """
     狀態 4: 顯示篩選後的行程結果
     """
-    all_recs = load_recommendations()
+    # 使用 Service 載入推薦
+    all_recs = BookingService.load_recommendations()
     filters = app_instance.ai_filter_state
     
     logger.info(f"Applying filters: {filters}")

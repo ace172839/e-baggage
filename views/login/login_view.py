@@ -1,6 +1,7 @@
 import flet as ft
-import random
 from constants import *
+from services import ValidationService
+from views.common.mobile_qr_dialog import show_mobile_simulation_dialog
 
 def build_login_view(app_instance: 'App', role: str) -> ft.View:
     """
@@ -30,8 +31,15 @@ def build_login_view(app_instance: 'App', role: str) -> ft.View:
                                     width=100,
                                     height=100,
                                 ),
+                                ft.IconButton(
+                                    icon=ft.Icons.QR_CODE_2,
+                                    tooltip="手機掃描體驗",
+                                    icon_size=30,
+                                    on_click=lambda e: show_mobile_simulation_dialog(app_instance.page, port=8550) 
+                                    # 注意：port 要跟您啟動指令設定的一樣，預設 Flet web 常常是 8550 或隨機，建議固定
+                                )
                             ],
-                            alignment=ft.MainAxisAlignment.END,
+                            alignment=ft.MainAxisAlignment.CENTER,
                         ),
                         ft.Divider(height=10, color=ft.Colors.TRANSPARENT),
                         ft.Container(
@@ -94,7 +102,7 @@ def build_login_view(app_instance: 'App', role: str) -> ft.View:
                                         ft.Container(
                                             content=ft.Text(
                                                 ref=app_instance.captcha_text,
-                                                value=str(random.randint(10000, 99999)),
+                                                value=ValidationService.generate_captcha(),
                                                 size=24, color=ft.Colors.BLACK38,
                                                 weight=ft.FontWeight.BOLD
                                             ),
@@ -124,7 +132,7 @@ def build_login_view(app_instance: 'App', role: str) -> ft.View:
                                     )
                                 ],
                             ),
-                        )
+                        ),
                     ],
                     alignment=ft.MainAxisAlignment.CENTER,
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,

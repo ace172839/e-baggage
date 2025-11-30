@@ -23,7 +23,7 @@ def build_scan_view(app_instance: 'App') -> ft.View:
             bgcolor=COLOR_BRAND_YELLOW, 
             leading=ft.IconButton(
                 icon=ft.Icons.ARROW_BACK, 
-                on_click=lambda _: app_instance.page.go("/app/user/booking_instant"), 
+                on_click=lambda _: app_instance.page.go("/app/user/instant_booking"), 
                 icon_color=ft.Colors.WHITE
             )
         ),

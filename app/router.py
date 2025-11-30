@@ -12,11 +12,12 @@ from views.login.splash_view_to_hotel import build_splash_to_hotel_view
 
 from views.user.user_home_page_content import build_dashboard_view
 from views.user.user_home_page_more_content import build_more_view
-from views.user.user_booking_instant import build_instant_booking_view, build_instant_booking_confirm_view
-from views.user.user_booking_previous import build_previous_booking_view, build_previous_booking_confirm_view
+from views.user.user_instant_booking import build_instant_booking_view
+from views.user.user_previous_booking import build_previous_booking_view
 from views.user.user_supporting import build_support_view
 from views.user.map_view import build_map_view
-from views.user.user_history import history_view
+from views.user.user_history_refactored import build_history_view
+from views.user.user_vehicle_selection import build_vehicle_selection_view
 
 # --- 從 app/ 子模組匯入 ---
 from app.user import build_user_tracking_view
@@ -44,7 +45,7 @@ def create_route_handler(app_instance: 'App'):
         page = app_instance.page
         logger.info(f"Navigating to route: {page.route}")
         
-        if page.route == "/app/user/map" or page.route == "/app/user/booking_instant":
+        if page.route == "/app/user/map" or page.route == "/app/user/instant_booking":
             page.update()
         else:
             page.views.clear()
@@ -73,14 +74,14 @@ def create_route_handler(app_instance: 'App'):
             page.views.append(build_dashboard_view(app_instance))
         elif page.route == "/app/user/more":
             page.views.append(build_more_view(app_instance))
-        elif page.route == "/app/user/booking_instant":
+        elif page.route == "/app/user/instant_booking":
             page.views.append(build_instant_booking_view(app_instance))
         elif page.route == "/app/user/confirm_order":
-            page.views.append(build_instant_booking_confirm_view(app_instance))
-        elif page.route == "/app/user/booking_previous":
+            page.views.append(build_instant_booking_view(app_instance))
+        elif page.route == "/app/user/previous_booking":
             page.views.append(build_previous_booking_view(app_instance))
-        elif page.route == "/app/user/booking_previous_confirm":
-            page.views.append(build_previous_booking_confirm_view(app_instance))
+        elif page.route == "/app/user/previous_booking_confirm":
+            page.views.append(build_previous_booking_view(app_instance))
         elif page.route == "/app/user/support":
             page.views.append(build_support_view(app_instance))
         elif page.route == "/app/user/scan":
@@ -88,7 +89,9 @@ def create_route_handler(app_instance: 'App'):
         elif page.route == "/app/user/scan_results":
             page.views.append(build_scan_results_view(app_instance))
         elif page.route == "/app/user/history":
-            page.views.append(history_view(app_instance))
+            page.views.append(build_history_view(app_instance))
+        elif page.route == "/app/user/vehicle_selection":
+            page.views.append(build_vehicle_selection_view(app_instance))
         elif page.route.startswith("/app/user/map/"):
             map_target_view = ft.View(route=page.route)
             page.views.append(build_map_view(app_instance, map_target_view))

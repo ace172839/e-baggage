@@ -110,7 +110,7 @@ def build_confirm_order_view(app_instance: 'App') -> ft.View:
         padding=0,
         appbar=ft.AppBar(
             title=ft.Text("確認您的行程"),
-            leading=ft.IconButton(icon=ft.Icons.ARROW_BACK, on_click=lambda _: app_instance.page.page.go("/app/user/booking_instant")),
+            leading=ft.IconButton(icon=ft.Icons.ARROW_BACK, on_click=lambda _: app_instance.page.page.go("/app/user/instant_booking")),
         ),
         controls=[
             ft.Stack(
